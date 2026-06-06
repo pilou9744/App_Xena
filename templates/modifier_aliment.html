@@ -1,0 +1,66 @@
+﻿<!doctype html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ titre }} - GeckoCare Xena</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <header class="entete">
+        <h1>GeckoCare Xena</h1>
+        <nav class="navigation" aria-label="Navigation principale">
+            <a href="{{ url_for('accueil') }}">Accueil</a>
+            <a href="{{ url_for('tableau_de_bord') }}">Tableau de bord</a>
+            <a href="{{ url_for('releves') }}">Releves</a>
+            <a href="{{ url_for('repas') }}">Repas</a>
+            <a href="{{ url_for('observations') }}">Observations</a>
+            <a href="{{ url_for('insectes') }}">Insectes</a>
+            <a href="{{ url_for('boites_insectes') }}">Boites</a>
+            <a href="{{ url_for('materiel') }}">Materiel</a>
+            <a href="{{ url_for('plantes') }}">Plantes</a>
+            <a href="{{ url_for('animaux') }}">Animaux</a>
+            <a href="{{ url_for('reglages') }}">Reglages</a>
+        </nav>
+    </header>
+
+    <main class="contenu">
+        <section class="intro">
+            <h2>Modifier un aliment</h2>
+            <p class="texte-secondaire">Correction du nom ou de la categorie utilisee pour les prochains repas.</p>
+        </section>
+
+        <section class="carte section-dashboard">
+            <form class="formulaire" method="post">
+                <div class="champ">
+                    <label for="nom">Nom</label>
+                    <input id="nom" name="nom" type="text" value="{{ aliment.nom }}" required>
+                </div>
+
+                <div class="champ">
+                    <label for="categorie">Categorie</label>
+                    <select id="categorie" name="categorie" required>
+                        {% for categorie in categories %}
+                            <option value="{{ categorie }}" {% if aliment.categorie == categorie %}selected{% endif %}>{{ categorie }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="champ champ-large">
+                    <label for="notes">Notes</label>
+                    <textarea id="notes" name="notes" rows="3">{{ aliment.notes or "" }}</textarea>
+                </div>
+
+                <div class="actions-formulaire">
+                    <button type="submit">Enregistrer</button>
+                    <a class="bouton-secondaire" href="{{ url_for('repas') }}">Annuler</a>
+                </div>
+            </form>
+        </section>
+    </main>
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
+
+
+

@@ -1,0 +1,213 @@
+﻿<!doctype html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ titre }} - GeckoCare Xena</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <header class="entete">
+        <h1>GeckoCare Xena</h1>
+        <nav class="navigation" aria-label="Navigation principale">
+            <a href="{{ url_for('accueil') }}">Accueil</a>
+            <a href="{{ url_for('tableau_de_bord') }}">Tableau de bord</a>
+            <a href="{{ url_for('releves') }}">Releves</a>
+            <a href="{{ url_for('repas') }}">Repas</a>
+            <a href="{{ url_for('observations') }}">Observations</a>
+            <a href="{{ url_for('insectes') }}">Insectes</a>
+            <a href="{{ url_for('boites_insectes') }}">Boites</a>
+            <a href="{{ url_for('materiel') }}">Materiel</a>
+            <a href="{{ url_for('plantes') }}">Plantes</a>
+            <a href="{{ url_for('animaux') }}">Animaux</a>
+            <a href="{{ url_for('reglages') }}">Reglages</a>
+        </nav>
+    </header>
+
+    <main class="contenu">
+        <section class="intro">
+            <h2>Repas</h2>
+            <p class="texte-secondaire">Suivi de l'alimentation, du calcium sans D3 et de la vitamine D3.</p>
+        </section>
+
+        <section class="carte section-dashboard">
+            <form class="formulaire formulaire-compact" method="get" action="{{ url_for('repas') }}">
+                <div class="champ">
+                    <label for="animal_filtre">Animal</label>
+                    <select id="animal_filtre" name="animal_id">
+                        {% for animal in animaux %}
+                            <option value="{{ animal.id }}" {% if animal_id == animal.id %}selected{% endif %}>{{ animal.nom }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="actions-formulaire"><button type="submit">Afficher</button></div>
+            </form>
+        </section>
+
+        <section class="carte section-dashboard">
+            <h3>Ajouter un repas</h3>
+            <form class="formulaire" method="post">
+                <input name="animal_id" type="hidden" value="{{ animal_id }}">
+                <div class="champ">
+                    <label for="date_repas">Date</label>
+                    <input id="date_repas" name="date_repas" type="date" value="{{ aujourd_hui }}" required>
+                </div>
+
+                <div class="champ">
+                    <label for="heure_repas">Heure</label>
+                    <input id="heure_repas" name="heure_repas" type="time" required>
+                </div>
+
+                <div class="champ">
+                    <label for="aliment">Aliment</label>
+                    <select id="aliment" name="aliment_id" required>
+                        {% for aliment in aliments %}
+                            <option value="{{ aliment.id }}">{{ aliment.nom }} - {{ aliment.categorie }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="champ">
+                    <label for="quantite">Quantite</label>
+                    <input id="quantite" name="quantite" type="text" placeholder="ex. 4 grillons">
+                </div>
+
+                <label class="case">
+                    <input name="calcium_sans_d3" type="checkbox">
+                    Calcium sans D3
+                </label>
+
+                <label class="case">
+                    <input name="vitamine_d3" type="checkbox">
+                    Vitamine D3
+                </label>
+
+                <div class="champ champ-large">
+                    <label for="notes">Notes</label>
+                    <textarea id="notes" name="notes" rows="3"></textarea>
+                </div>
+
+                <div class="actions-formulaire">
+                    <button type="submit">Ajouter le repas</button>
+                </div>
+            </form>
+        </section>
+
+        <section class="carte section-dashboard">
+            <h3>Ajouter un aliment</h3>
+            <form class="formulaire" method="post">
+                <input name="formulaire" type="hidden" value="aliment">
+                <input name="animal_id" type="hidden" value="{{ animal_id }}">
+
+                <div class="champ">
+                    <label for="nom">Nom</label>
+                    <input id="nom" name="nom" type="text" placeholder="ex. grillon" required>
+                </div>
+
+                <div class="champ">
+                    <label for="categorie">Categorie</label>
+                    <select id="categorie" name="categorie" required>
+                        <option value="insectes">Insectes</option>
+                        <option value="patee">Patee</option>
+                        <option value="fruit">Fruit</option>
+                        <option value="autre">Autre</option>
+                    </select>
+                </div>
+
+                <div class="champ champ-large">
+                    <label for="notes_aliment">Notes</label>
+                    <textarea id="notes_aliment" name="notes" rows="2"></textarea>
+                </div>
+
+                <div class="actions-formulaire">
+                    <button type="submit">Ajouter l'aliment</button>
+                </div>
+            </form>
+        </section>
+
+        <section class="carte section-dashboard">
+            <h3>Aliments disponibles</h3>
+            {% if aliments %}
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Nom</th>
+                            <th>Categorie</th>
+                            <th>Notes</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for aliment in aliments %}
+                            <tr>
+                                <td>{{ aliment.nom }}</td>
+                                <td>{{ aliment.categorie }}</td>
+                                <td>{{ aliment.notes or "-" }}</td>
+                                <td>
+                                    <div class="actions-ligne">
+                                        <a class="bouton-secondaire" href="{{ url_for('modifier_aliment', aliment_id=aliment.id) }}">Modifier</a>
+                                        <form method="post" action="{{ url_for('supprimer_aliment', aliment_id=aliment.id) }}" onsubmit="return confirm('Supprimer cet aliment ? Les anciens repas resteront conserves.');">
+                                            <button class="bouton-danger" type="submit">Supprimer</button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <p class="texte-secondaire">Aucun aliment pour le moment.</p>
+            {% endif %}
+        </section>
+
+        <section class="carte section-dashboard">
+            <h3>Derniers repas</h3>
+            {% if derniers_repas %}
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Heure</th>
+                            <th>Aliment</th>
+                            <th>Categorie</th>
+                            <th>Quantite</th>
+                            <th>Calcium</th>
+                            <th>D3</th>
+                            <th>Notes</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for repas in derniers_repas %}
+                            <tr>
+                                <td>{{ repas.date_repas }}</td>
+                                <td>{{ repas.heure_repas or "-" }}</td>
+                                <td>{{ repas.aliment }}</td>
+                                <td>{{ repas.categorie }}</td>
+                                <td>{{ repas.quantite or "-" }}</td>
+                                <td>{{ "oui" if repas.calcium_sans_d3 else "non" }}</td>
+                                <td>{{ "oui" if repas.vitamine_d3 else "non" }}</td>
+                                <td>{{ repas.notes or "-" }}</td>
+                                <td>
+                                    <div class="actions-ligne">
+                                        <a class="bouton-secondaire" href="{{ url_for('modifier_repas', repas_id=repas.id) }}">Modifier</a>
+                                        <form method="post" action="{{ url_for('supprimer_repas', repas_id=repas.id) }}" onsubmit="return confirm('Supprimer ce repas ? Cette action est definitive.');">
+                                            <button class="bouton-danger" type="submit">Supprimer</button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <p class="texte-secondaire">Aucun repas pour le moment.</p>
+            {% endif %}
+        </section>
+    </main>
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
+
+
+

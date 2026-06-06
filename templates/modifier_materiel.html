@@ -1,0 +1,130 @@
+﻿<!doctype html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ titre }} - GeckoCare Xena</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <header class="entete">
+        <h1>GeckoCare Xena</h1>
+        <nav class="navigation" aria-label="Navigation principale">
+            <a href="{{ url_for('accueil') }}">Accueil</a>
+            <a href="{{ url_for('tableau_de_bord') }}">Tableau de bord</a>
+            <a href="{{ url_for('releves') }}">Releves</a>
+            <a href="{{ url_for('repas') }}">Repas</a>
+            <a href="{{ url_for('observations') }}">Observations</a>
+            <a href="{{ url_for('insectes') }}">Insectes</a>
+            <a href="{{ url_for('boites_insectes') }}">Boites</a>
+            <a href="{{ url_for('materiel') }}">Materiel</a>
+            <a href="{{ url_for('plantes') }}">Plantes</a>
+            <a href="{{ url_for('animaux') }}">Animaux</a>
+            <a href="{{ url_for('reglages') }}">Reglages</a>
+        </nav>
+    </header>
+
+    <main class="contenu">
+        <section class="intro">
+            <h2>Modifier un materiel</h2>
+            <p class="texte-secondaire">Correction du materiel ou de son etat actif.</p>
+        </section>
+
+        <section class="carte section-dashboard">
+            <form class="formulaire" method="post">
+                <div class="champ">
+                    <label for="animal_id">Animal</label>
+                    <select id="animal_id" name="animal_id">
+                        {% for animal in animaux %}
+                            <option value="{{ animal.id }}" {% if materiel.animal_id == animal.id %}selected{% endif %}>{{ animal.nom }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="champ">
+                    <label for="nom">Nom</label>
+                    <input id="nom" name="nom" type="text" value="{{ materiel.nom }}" required>
+                </div>
+
+                <div class="champ">
+                    <label for="type">Type</label>
+                    <select id="type" name="type" required>
+                        {% for type_materiel in types_materiel %}
+                            <option value="{{ type_materiel.nom }}" {% if materiel.type == type_materiel.nom %}selected{% endif %}>{{ type_materiel.nom }}</option>
+                        {% endfor %}
+                        {% if materiel.type not in types_materiel|map(attribute='nom')|list %}
+                            <option value="{{ materiel.type }}" selected>{{ materiel.type }}</option>
+                        {% endif %}
+                    </select>
+                </div>
+
+                <div class="champ">
+                    <label for="date_debut">Date d'ajout / debut d'utilisation</label>
+                    <input id="date_debut" name="date_debut" type="date" value="{{ materiel.date_debut or '' }}">
+                </div>
+
+                <div class="champ">
+                    <label for="date_fin">Date de retrait / panne / obsolescence</label>
+                    <input id="date_fin" name="date_fin" type="date" value="{{ materiel.date_fin or '' }}">
+                </div>
+
+                <label class="case">
+                    <input name="actif" type="checkbox" {% if materiel.actif %}checked{% endif %}>
+                    Actif actuellement
+                </label>
+
+                <div class="champ">
+                    <label for="statut">Statut</label>
+                    <select id="statut" name="statut" required>
+                        {% for valeur, libelle in statuts_materiel %}
+                            <option value="{{ valeur }}" {% if materiel.statut == valeur %}selected{% endif %}>{{ libelle }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <label class="case">
+                    <input name="est_consommable" type="checkbox" {% if materiel.est_consommable %}checked{% endif %}>
+                    Consommable / contenant a peser
+                </label>
+
+                <div class="champ">
+                    <label for="quantite_initiale">Quantite initiale</label>
+                    <input id="quantite_initiale" name="quantite_initiale" type="number" step="0.01" min="0" value="{{ materiel.quantite_initiale or '' }}">
+                </div>
+
+                <div class="champ">
+                    <label for="quantite_restante">Quantite restante</label>
+                    <input id="quantite_restante" name="quantite_restante" type="number" step="0.01" min="0" value="{{ materiel.quantite_restante or '' }}">
+                </div>
+
+                <div class="champ">
+                    <label for="unite_quantite">Unite</label>
+                    <select id="unite_quantite" name="unite_quantite">
+                        {% for unite in ["g", "kg", "ml", "l"] %}
+                            <option value="{{ unite }}" {% if materiel.unite_quantite == unite %}selected{% endif %}>{{ unite }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="champ champ-large">
+                    <label for="description">Description</label>
+                    <textarea id="description" name="description" rows="3">{{ materiel.description or "" }}</textarea>
+                </div>
+
+                <div class="champ champ-large">
+                    <label for="notes">Notes</label>
+                    <textarea id="notes" name="notes" rows="3">{{ materiel.notes or "" }}</textarea>
+                </div>
+
+                <div class="actions-formulaire">
+                    <button type="submit">Enregistrer</button>
+                    <a class="bouton-secondaire" href="{{ url_for('materiel') }}">Annuler</a>
+                </div>
+            </form>
+        </section>
+    </main>
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
+
+
+

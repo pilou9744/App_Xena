@@ -1,0 +1,141 @@
+﻿<!doctype html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ titre }} - GeckoCare Xena</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <header class="entete">
+        <h1>GeckoCare Xena</h1>
+        <nav class="navigation" aria-label="Navigation principale">
+            <a href="{{ url_for('accueil') }}">Accueil</a>
+            <a href="{{ url_for('tableau_de_bord') }}">Tableau de bord</a>
+            <a href="{{ url_for('releves') }}">Releves</a>
+            <a href="{{ url_for('repas') }}">Repas</a>
+            <a href="{{ url_for('observations') }}">Observations</a>
+            <a href="{{ url_for('insectes') }}">Insectes</a>
+            <a href="{{ url_for('boites_insectes') }}">Boites</a>
+            <a href="{{ url_for('materiel') }}">Materiel</a>
+            <a href="{{ url_for('plantes') }}">Plantes</a>
+            <a href="{{ url_for('animaux') }}">Animaux</a>
+            <a href="{{ url_for('reglages') }}">Reglages</a>
+        </nav>
+    </header>
+
+    <main class="contenu">
+        <section class="intro">
+            <h2>Plantes</h2>
+            <p class="texte-secondaire">Suivi des plantes naturelles et plastiques du terrarium.</p>
+        </section>
+
+        <section class="carte section-dashboard">
+            <form class="formulaire formulaire-compact" method="get" action="{{ url_for('plantes') }}">
+                <div class="champ">
+                    <label for="animal_filtre">Animal</label>
+                    <select id="animal_filtre" name="animal_id">
+                        {% for animal in animaux %}
+                            <option value="{{ animal.id }}" {% if animal_id == animal.id %}selected{% endif %}>{{ animal.nom }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="actions-formulaire"><button type="submit">Afficher</button></div>
+            </form>
+        </section>
+
+        <section class="carte section-dashboard">
+            <h3>Ajouter une plante</h3>
+            <form class="formulaire" method="post">
+                <input name="animal_id" type="hidden" value="{{ animal_id }}">
+                <div class="champ">
+                    <label for="nom">Nom</label>
+                    <input id="nom" name="nom" type="text" required>
+                </div>
+
+                <div class="champ">
+                    <label for="espece">Espece</label>
+                    <input id="espece" name="espece" type="text">
+                </div>
+
+                <div class="champ">
+                    <label for="type_plante">Type</label>
+                    <select id="type_plante" name="type_plante" required>
+                        <option value="naturelle">Naturelle</option>
+                        <option value="plastique">Plastique</option>
+                    </select>
+                </div>
+
+                <div class="champ">
+                    <label for="etat">Etat</label>
+                    <select id="etat" name="etat" required>
+                        <option value="excellent">Excellent</option>
+                        <option value="moyen">Moyen</option>
+                        <option value="mauvais">Mauvais</option>
+                        <option value="decede">Decede</option>
+                    </select>
+                </div>
+
+                <div class="champ">
+                    <label for="date_ajout">Date d'ajout</label>
+                    <input id="date_ajout" name="date_ajout" type="date" value="{{ aujourd_hui }}">
+                </div>
+
+                <div class="champ champ-large">
+                    <label for="notes">Notes</label>
+                    <textarea id="notes" name="notes" rows="3"></textarea>
+                </div>
+
+                <div class="actions-formulaire">
+                    <button type="submit">Ajouter la plante</button>
+                </div>
+            </form>
+        </section>
+
+        <section class="carte section-dashboard">
+            <h3>Plantes suivies</h3>
+            {% if plantes %}
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Nom</th>
+                            <th>Espece</th>
+                            <th>Type</th>
+                            <th>Etat</th>
+                            <th>Date</th>
+                            <th>Notes</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for plante in plantes %}
+                            <tr>
+                                <td>{{ plante.nom }}</td>
+                                <td>{{ plante.espece or "-" }}</td>
+                                <td>{{ plante.type_plante }}</td>
+                                <td><span class="pastille etat-{{ plante.etat }}">{{ plante.etat }}</span></td>
+                                <td>{{ plante.date_ajout or "-" }}</td>
+                                <td>{{ plante.notes or "-" }}</td>
+                                <td>
+                                    <div class="actions-ligne">
+                                        <a class="bouton-secondaire" href="{{ url_for('modifier_plante', plante_id=plante.id) }}">Modifier</a>
+                                        <form method="post" action="{{ url_for('supprimer_plante', plante_id=plante.id) }}" onsubmit="return confirm('Supprimer cette plante ? Cette action est definitive.');">
+                                            <button class="bouton-danger" type="submit">Supprimer</button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <p class="texte-secondaire">Aucune plante pour le moment.</p>
+            {% endif %}
+        </section>
+    </main>
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
+
+
+

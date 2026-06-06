@@ -1,0 +1,88 @@
+﻿<!doctype html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ titre }} - GeckoCare Xena</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <header class="entete">
+        <h1>GeckoCare Xena</h1>
+        <nav class="navigation" aria-label="Navigation principale">
+            <a href="{{ url_for('accueil') }}">Accueil</a>
+            <a href="{{ url_for('tableau_de_bord') }}">Tableau de bord</a>
+            <a href="{{ url_for('releves') }}">Releves</a>
+            <a href="{{ url_for('repas') }}">Repas</a>
+            <a href="{{ url_for('observations') }}">Observations</a>
+            <a href="{{ url_for('insectes') }}">Insectes</a>
+            <a href="{{ url_for('boites_insectes') }}">Boites</a>
+            <a href="{{ url_for('materiel') }}">Materiel</a>
+            <a href="{{ url_for('plantes') }}">Plantes</a>
+            <a href="{{ url_for('animaux') }}">Animaux</a>
+            <a href="{{ url_for('reglages') }}">Reglages</a>
+        </nav>
+    </header>
+
+    <main class="contenu">
+        <section class="intro">
+            <h2>Modifier une action insectes</h2>
+            <p class="texte-secondaire">Correction du nourrissage, de la brumisation ou de la boite concernee.</p>
+        </section>
+
+        <section class="carte section-dashboard">
+            <form class="formulaire" method="post">
+                <div class="champ">
+                    <label for="date_action">Date</label>
+                    <input id="date_action" name="date_action" type="date" value="{{ action.date_action }}" required>
+                </div>
+
+                <div class="champ">
+                    <label for="heure_action">Heure</label>
+                    <input id="heure_action" name="heure_action" type="time" value="{{ action.heure_action or '' }}" required>
+                </div>
+
+                <div class="champ">
+                    <label for="boite_id">Boite</label>
+                    <select id="boite_id" name="boite_id" required>
+                        {% for boite in boites_insectes %}
+                            <option value="{{ boite.id }}" {% if boite.nom == action.boite %}selected{% endif %}>
+                                {{ boite.nom }} - {{ boite.type_insecte }} - {{ boite.nombre_individus }} individu(s)
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <label class="case">
+                    <input name="nourrissage" type="checkbox" {% if action.nourrissage %}checked{% endif %}>
+                    Nourrissage fait
+                </label>
+
+                <label class="case">
+                    <input name="brumisation" type="checkbox" {% if action.brumisation %}checked{% endif %}>
+                    Brumisation faite
+                </label>
+
+                <div class="champ champ-large">
+                    <label for="nourriture_donnee">Nourriture donnee</label>
+                    <input id="nourriture_donnee" name="nourriture_donnee" type="text" value="{{ action.nourriture_donnee or '' }}">
+                </div>
+
+                <div class="champ champ-large">
+                    <label for="notes">Notes</label>
+                    <textarea id="notes" name="notes" rows="3">{{ action.notes or "" }}</textarea>
+                </div>
+
+                <div class="actions-formulaire">
+                    <button type="submit">Enregistrer</button>
+                    <a class="bouton-secondaire" href="{{ url_for('insectes') }}">Annuler</a>
+                </div>
+            </form>
+        </section>
+    </main>
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
+
+
+

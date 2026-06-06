@@ -1,0 +1,199 @@
+Configuration Discord pour GeckoCare Xena
+=========================================
+
+Objectif
+--------
+Recevoir les alertes GeckoCare dans un salon Discord, sans devoir ouvrir
+le tableau de bord a chaque fois.
+
+GeckoCare propose deux methodes :
+- Methode simple : webhook de salon.
+- Methode alternative : bot Discord + ID du salon.
+
+
+1. Creer le webhook dans Discord
+--------------------------------
+Important :
+Il ne faut pas creer un bot Discord dans le portail developpeur Discord.
+Pour GeckoCare, il faut creer un webhook directement dans les parametres
+du salon Discord.
+
+1. Ouvre Discord.
+2. Va sur ton serveur.
+3. Choisis le salon ou tu veux recevoir les alertes.
+4. Clique sur la roue des parametres du salon.
+5. Va dans Integrations.
+6. Clique sur Webhooks.
+7. Clique sur Nouveau webhook.
+8. Donne-lui un nom, par exemple :
+   GeckoCare Xena
+9. Verifie que le bon salon est selectionne.
+10. Clique sur Copier l'URL du webhook.
+
+Important :
+- Garde cette URL privee.
+- Toute personne qui possede cette URL peut envoyer des messages dans ce salon.
+- L'URL doit commencer par :
+  https://discord.com/api/webhooks/
+- Ne colle pas un token de bot, un lien de salon ou un lien d'invitation.
+
+
+2. Configurer GeckoCare
+----------------------
+1. Lance l'application GeckoCare.
+2. Ouvre la page Reglages.
+3. Va dans la section Discord.
+4. Colle l'URL du webhook Discord dans le champ :
+   URL du webhook Discord
+5. Coche les options souhaitees :
+   - Envoyer les alertes actives
+   - Envoyer les alertes a venir
+6. Clique sur Enregistrer Discord.
+
+
+3. Tester l'envoi
+-----------------
+1. Reste dans Reglages > Discord.
+2. Clique sur Envoyer maintenant.
+3. Verifie dans Discord qu'un message apparait dans le salon choisi.
+
+Si aucune alerte n'est active, GeckoCare envoie quand meme :
+"Aucune alerte a signaler."
+
+
+4. Ce que le message contient
+-----------------------------
+Le message Discord contient :
+- un titre GeckoCare Xena - alertes
+- la date et l'heure
+- les alertes de chaque animal
+- les alertes communes aux insectes
+- les alertes a venir si l'option est activee
+
+Exemple :
+GeckoCare Xena - alertes
+2026-05-15 20:30
+
+Xena
+- Actuelle [attention] Derniere pesee il y a plus de 28 j. (animal)
+- A venir [attention] Acces a l'eau a verifier dans 4 h. (eau)
+
+
+5. Pour recevoir les alertes automatiquement
+--------------------------------------------
+Le bouton Envoyer maintenant fonctionne seulement quand tu cliques dessus.
+
+Pour recevoir les alertes automatiquement, il faudra :
+1. Laisser GeckoCare tourner sur le PC.
+2. Creer une tache planifiee Windows.
+3. Faire appeler l'URL locale :
+   http://127.0.0.1:5000/discord/alertes/envoyer
+
+Attention :
+Cette URL est en POST, donc un simple navigateur ne suffit pas toujours.
+On pourra ajouter ensuite un petit script Python ou PowerShell pour l'appeler
+toutes les heures automatiquement.
+
+
+6. Depannage rapide
+-------------------
+Si rien n'arrive sur Discord :
+1. Verifie que GeckoCare est lance.
+2. Verifie que l'URL du webhook est bien collee entierement.
+3. Verifie que le webhook existe encore dans Discord.
+4. Clique sur Envoyer maintenant.
+5. Si GeckoCare affiche "Webhook Discord non configure", l'URL n'a pas ete enregistree.
+6. Si GeckoCare affiche "Impossible de joindre Discord", verifie Internet et le webhook.
+7. Si GeckoCare affiche "Webhook Discord refuse ou introuvable", Discord a
+   bien repondu, mais l'URL ne correspond pas a un webhook actif.
+
+Test PowerShell utile :
+
+$webhook = "COLLE_LA_NOUVELLE_URL_WEBHOOK_ICI"
+$body = @{ content = "Test GeckoCare Xena" } | ConvertTo-Json
+Invoke-RestMethod -Uri $webhook -Method Post -Body $body -ContentType "application/json"
+
+Si ce test ne poste rien dans Discord, le probleme vient de l'URL ou du webhook
+cote Discord, pas de GeckoCare.
+
+
+8. Methode alternative : Bot Discord
+------------------------------------
+Utilise cette methode si les webhooks ne fonctionnent pas chez toi.
+
+Etape A - Creer le bot
+1. Va sur https://discord.com/developers/applications
+2. Clique sur New Application.
+3. Donne un nom, par exemple GeckoCare Xena.
+4. Va dans Bot.
+5. Clique sur Add Bot si necessaire.
+6. Clique sur Reset Token ou Copy Token.
+7. Garde ce token prive.
+
+Etape B - Inviter le bot sur ton serveur
+1. Dans le portail developpeur Discord, va dans OAuth2 > URL Generator.
+2. Dans Scopes, coche bot.
+3. Dans Bot Permissions, coche Send Messages et View Channels.
+4. Copie l'URL generee.
+5. Ouvre cette URL dans ton navigateur.
+6. Choisis ton serveur et autorise le bot.
+
+Etape C - Copier l'ID du salon
+1. Dans Discord, va dans Parametres utilisateur > Avance.
+2. Active Mode developpeur.
+3. Clique droit sur le salon qui doit recevoir les alertes.
+4. Clique sur Copier l'identifiant du salon.
+
+Etape D - Configurer GeckoCare
+1. Va dans GeckoCare > Reglages > Discord.
+2. Dans Methode d'envoi, choisis Bot Discord.
+3. Colle le token du bot dans Token du bot Discord.
+4. Colle l'ID du salon dans ID du salon Discord.
+5. Choisis les notifications :
+   - Activer l'envoi automatique
+   - Resume quotidien
+   - Heure du resume, par exemple 18:00
+   - Alerter quand une nouvelle alerte apparait
+   - Niveaux envoyes : info, attention, danger, critique
+6. Clique sur Envoyer maintenant.
+
+Notifications automatiques
+--------------------------
+GeckoCare peut envoyer :
+- un resume complet tous les jours a l'heure choisie ;
+- un message quand une nouvelle alerte apparait.
+
+Important :
+- L'application GeckoCare doit rester lancee sur le PC.
+- L'envoi automatique demarre quand l'application est ouverte au moins une fois
+  dans le navigateur pendant la session.
+- Par defaut, les niveaux envoyes sont attention, danger et critique.
+- Les alertes info ne sont envoyees que si tu coches le niveau info.
+
+Pour ton besoin :
+1. Coche Activer l'envoi automatique.
+2. Coche Resume quotidien.
+3. Mets Heure du resume a 18:00.
+4. Coche Alerter quand une nouvelle alerte apparait.
+5. Coche les niveaux que tu veux recevoir, par exemple :
+   - attention
+   - danger
+   - critique
+6. Decoche info si tu ne veux pas les petites alertes informatives.
+
+Si Discord refuse :
+- verifie que le bot est bien invite sur le serveur ;
+- verifie que le bot voit le salon ;
+- verifie qu'il a la permission Envoyer des messages ;
+- verifie que l'ID du salon est bien celui du salon cible ;
+- regenere le token si tu l'as partage par erreur.
+
+
+7. Securite
+-----------
+Ne partage pas l'URL du webhook.
+Si elle a ete partagee par erreur :
+1. Va dans Discord > Integrations > Webhooks.
+2. Supprime l'ancien webhook.
+3. Cree un nouveau webhook.
+4. Remplace l'URL dans GeckoCare.

@@ -1,0 +1,75 @@
+﻿<!doctype html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ titre }} - GeckoCare Xena</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <header class="entete">
+        <h1>GeckoCare Xena</h1>
+        <nav class="navigation" aria-label="Navigation principale">
+            <a href="{{ url_for('accueil') }}">Accueil</a>
+            <a href="{{ url_for('tableau_de_bord') }}">Tableau de bord</a>
+            <a href="{{ url_for('releves') }}">Releves</a>
+            <a href="{{ url_for('repas') }}">Repas</a>
+            <a href="{{ url_for('observations') }}">Observations</a>
+            <a href="{{ url_for('insectes') }}">Insectes</a>
+            <a href="{{ url_for('boites_insectes') }}">Boites</a>
+            <a href="{{ url_for('materiel') }}">Materiel</a>
+            <a href="{{ url_for('plantes') }}">Plantes</a>
+            <a href="{{ url_for('animaux') }}">Animaux</a>
+            <a href="{{ url_for('reglages') }}">Reglages</a>
+        </nav>
+    </header>
+
+    <main class="contenu">
+        <section class="intro">
+            <h2>Modifier une boite</h2>
+            <p class="texte-secondaire">Mise a jour du nom, du type ou du nombre d'individus.</p>
+        </section>
+
+        <section class="carte section-dashboard">
+            {% if erreur %}
+                <p class="message-erreur">{{ erreur }}</p>
+            {% endif %}
+
+            <form class="formulaire" method="post">
+                <div class="champ">
+                    <label for="nom">Nom</label>
+                    <input id="nom" name="nom" type="text" value="{{ boite.nom }}" required>
+                </div>
+
+                <div class="champ">
+                    <label for="type_insecte">Type d'insecte</label>
+                    <select id="type_insecte" name="type_insecte" required>
+                        {% for type_insecte in ["grillons", "red runner", "vers de farine"] %}
+                            <option value="{{ type_insecte }}" {% if boite.type_insecte == type_insecte %}selected{% endif %}>{{ type_insecte }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="champ">
+                    <label for="nombre_individus">Nombre d'individus</label>
+                    <input id="nombre_individus" name="nombre_individus" type="number" min="0" value="{{ boite.nombre_individus }}" required>
+                </div>
+
+                <div class="champ champ-large">
+                    <label for="notes">Notes</label>
+                    <textarea id="notes" name="notes" rows="3">{{ boite.notes or "" }}</textarea>
+                </div>
+
+                <div class="actions-formulaire">
+                    <button type="submit">Enregistrer</button>
+                    <a class="bouton-secondaire" href="{{ url_for('boites_insectes') }}">Annuler</a>
+                </div>
+            </form>
+        </section>
+    </main>
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
+
+
+

@@ -1,0 +1,430 @@
+﻿<!doctype html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ titre }} - GeckoCare Xena</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <header class="entete">
+        <h1>GeckoCare Xena</h1>
+        <nav class="navigation" aria-label="Navigation principale">
+            <a href="{{ url_for('accueil') }}">Accueil</a>
+            <a href="{{ url_for('tableau_de_bord') }}">Tableau de bord</a>
+            <a href="{{ url_for('releves') }}">Releves</a>
+            <a href="{{ url_for('repas') }}">Repas</a>
+            <a href="{{ url_for('observations') }}">Observations</a>
+            <a href="{{ url_for('insectes') }}">Insectes</a>
+            <a href="{{ url_for('boites_insectes') }}">Boites</a>
+            <a href="{{ url_for('materiel') }}">Materiel</a>
+            <a href="{{ url_for('plantes') }}">Plantes</a>
+            <a href="{{ url_for('animaux') }}">Animaux</a>
+            <a href="{{ url_for('reglages') }}">Reglages</a>
+        </nav>
+    </header>
+
+    <main class="contenu">
+        <section class="intro">
+            <h2>Tableau de bord</h2>
+            <p class="texte-secondaire">Vue du {{ date_selectionnee }}. Maintenant : {{ maintenant }}.</p>
+        </section>
+
+        <section class="carte section-dashboard">
+            <form class="formulaire formulaire-compact" method="get" action="{{ url_for('tableau_de_bord') }}">
+                <div class="champ">
+                    <label for="date">Jour consulte</label>
+                    <input id="date" name="date" type="date" value="{{ date_selectionnee }}" required>
+                </div>
+                <div class="champ">
+                    <label for="animal_id">Animal</label>
+                    <select id="animal_id" name="animal_id">
+                        {% for item in animaux %}
+                            <option value="{{ item.id }}" {% if animal_id == item.id %}selected{% endif %}>{{ item.nom }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="actions-formulaire">
+                    <button type="submit">Voir la journee</button>
+                </div>
+            </form>
+        </section>
+
+        <section class="carte section-dashboard">
+            <h3>Actions rapides</h3>
+            <div class="actions-rapides">
+                <a class="bouton-secondaire" href="{{ url_for('releves', animal_id=animal_id) }}">Ajouter un releve</a>
+                <a class="bouton-secondaire" href="{{ url_for('repas', animal_id=animal_id) }}">Ajouter un repas</a>
+                <a class="bouton-secondaire" href="{{ url_for('observations', animal_id=animal_id) }}">Ajouter une observation</a>
+                <a class="bouton-secondaire" href="{{ url_for('insectes') }}">Action insectes</a>
+                <a class="bouton-secondaire" href="{{ url_for('materiel', animal_id=animal_id) }}">Peser un contenant</a>
+            </div>
+        </section>
+
+        {% if animal %}
+            <section class="carte section-dashboard animal-resume">
+                <div>
+                    <h3>{{ animal.nom }}</h3>
+                    <p class="valeur">{{ animal.age }}</p>
+                    <p>{{ animal.nom_vernaculaire or animal.espece }} - {{ animal.sexe or "sexe non precise" }}</p>
+                </div>
+                <dl class="infos-animal">
+                    <div><dt>Espece</dt><dd>{{ animal.nom_scientifique or animal.espece or "-" }}</dd></div>
+                    <div><dt>Taille</dt><dd>{{ animal.taille or "non renseignee" }}</dd></div>
+                    <div><dt>Poids</dt><dd>{{ animal.poids_affiche or "non renseigne" }}</dd></div>
+                    <div><dt>Naissance</dt><dd>{{ animal.date_naissance_estimee or "-" }}</dd></div>
+                </dl>
+                <details class="bloc-avance">
+                    <summary>Informations secondaires</summary>
+                    <dl class="infos-animal infos-animal-secondaires">
+                        <div><dt>Marquage</dt><dd>{{ animal.numero_marquage or "-" }} ({{ animal.procedure_marquage or "-" }})</dd></div>
+                        <div><dt>Adoption</dt><dd>{{ animal.date_adoption or "-" }}</dd></div>
+                        <div><dt>Ordre / classe</dt><dd>{{ animal.ordre or "-" }} / {{ animal.classe or "-" }}</dd></div>
+                        <div><dt>Origine</dt><dd>{{ animal.origine or "-" }} - {{ animal.pays_origine or "-" }}</dd></div>
+                    </dl>
+                </details>
+                <div class="actions-formulaire">
+                    <a class="bouton-secondaire" href="{{ url_for('modifier_animal', animal_id=animal.id) }}">Modifier l'animal</a>
+                    <a class="bouton-secondaire" href="{{ url_for('reglages') }}">Reglages des alertes</a>
+                </div>
+            </section>
+
+            <section class="carte section-dashboard">
+                <div class="titre-ligne">
+                    <div>
+                        <h3>Suivi du poids</h3>
+                        {% if dernier_poids %}
+                            <p class="texte-secondaire">Derniere pesee : {{ format_nombre(dernier_poids.poids) }} {{ dernier_poids.unite }} le {{ dernier_poids.date_mesure }}</p>
+                        {% else %}
+                            <p class="texte-secondaire">Aucune pesee notee pour cet animal.</p>
+                        {% endif %}
+                    </div>
+                </div>
+                <form class="formulaire formulaire-compact" method="post" action="{{ url_for('ajouter_poids') }}">
+                    <input type="hidden" name="animal_id" value="{{ animal.id }}">
+                    <input type="hidden" name="date_selectionnee" value="{{ date_selectionnee }}">
+                    <div class="champ">
+                        <label for="date_mesure">Date</label>
+                        <input id="date_mesure" name="date_mesure" type="date" value="{{ date_selectionnee }}" required>
+                    </div>
+                    <div class="champ">
+                        <label for="poids">Poids</label>
+                        <input id="poids" name="poids" type="number" step="0.01" min="0" value="{{ animal.poids or '' }}" required>
+                    </div>
+                    <div class="champ">
+                        <label for="unite">Unite</label>
+                        <select id="unite" name="unite">
+                            <option value="g" {% if animal.poids_unite == "g" %}selected{% endif %}>g</option>
+                            <option value="kg" {% if animal.poids_unite == "kg" %}selected{% endif %}>kg</option>
+                        </select>
+                    </div>
+                    <div class="champ champ-large">
+                        <label for="notes_poids">Notes</label>
+                        <input id="notes_poids" name="notes" type="text" placeholder="ex : pesee calme, balance cuisine">
+                    </div>
+                    <div class="actions-formulaire">
+                        <button type="submit">Ajouter la pesee</button>
+                    </div>
+                </form>
+            </section>
+
+            <section class="carte section-dashboard">
+                <div class="titre-ligne">
+                    <div>
+                        <h3>Suivi de la taille</h3>
+                        {% if derniere_taille %}
+                            <p class="texte-secondaire">Derniere mesure : {{ format_nombre(derniere_taille.taille) }} {{ derniere_taille.unite }} le {{ derniere_taille.date_mesure }}</p>
+                        {% else %}
+                            <p class="texte-secondaire">Aucune taille notee pour cet animal.</p>
+                        {% endif %}
+                    </div>
+                </div>
+                <form class="formulaire formulaire-compact" method="post" action="{{ url_for('ajouter_taille') }}">
+                    <input type="hidden" name="animal_id" value="{{ animal.id }}">
+                    <input type="hidden" name="date_selectionnee" value="{{ date_selectionnee }}">
+                    <div class="champ">
+                        <label for="date_mesure_taille">Date</label>
+                        <input id="date_mesure_taille" name="date_mesure" type="date" value="{{ date_selectionnee }}" required>
+                    </div>
+                    <div class="champ">
+                        <label for="taille_mesure">Taille</label>
+                        <input id="taille_mesure" name="taille" type="number" step="0.01" min="0" value="{{ animal.taille_valeur or '' }}" required>
+                    </div>
+                    <div class="champ">
+                        <label for="taille_unite_mesure">Unite</label>
+                        <select id="taille_unite_mesure" name="unite">
+                            {% for unite in ["cm", "mm", "m"] %}
+                                <option value="{{ unite }}" {% if animal.taille_unite == unite %}selected{% endif %}>{{ unite }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="champ champ-large">
+                        <label for="notes_taille">Notes</label>
+                        <input id="notes_taille" name="notes" type="text" placeholder="ex : mesure approximative">
+                    </div>
+                    <div class="actions-formulaire">
+                        <button type="submit">Ajouter la taille</button>
+                    </div>
+                </form>
+            </section>
+        {% endif %}
+
+        <section class="grille-cartes">
+            <article class="carte">
+                <h3>Dernier bilan de nuit</h3>
+                {% if dernier_matin %}
+                    <p class="valeur">{{ dernier_matin.temperature }} C</p>
+                    <p>{{ dernier_matin.humidite }} % humidite</p>
+                    <p class="texte-secondaire">{{ dernier_matin.date_releve }} {{ dernier_matin.heure_releve or "" }}</p>
+                {% else %}
+                    <p class="texte-secondaire">Aucun bilan de nuit.</p>
+                {% endif %}
+            </article>
+
+            <article class="carte">
+                <h3>Dernier bilan de journee</h3>
+                {% if dernier_soir %}
+                    <p class="valeur">{{ dernier_soir.temperature }} C</p>
+                    <p>{{ dernier_soir.humidite }} % humidite</p>
+                    <p class="texte-secondaire">{{ dernier_soir.date_releve }} {{ dernier_soir.heure_releve or "" }}</p>
+                {% else %}
+                    <p class="texte-secondaire">Aucun bilan de journee.</p>
+                {% endif %}
+            </article>
+
+            <article class="carte">
+                <h3>Mesure recente</h3>
+                {% if dernier_releve %}
+                    <p class="valeur">{{ dernier_releve.temperature }} C</p>
+                    <p>{{ dernier_releve.humidite }} % humidite</p>
+                    <p class="texte-secondaire">{{ "journée écoulée" if dernier_releve_periode == "soir" else "nuit écoulée" }} - {{ dernier_releve.date_releve }} {{ dernier_releve.heure_releve or "" }}</p>
+                {% else %}
+                    <p class="texte-secondaire">Aucun releve.</p>
+                {% endif %}
+            </article>
+
+            <article class="carte">
+                <h3>Dernier repas</h3>
+                {% if dernier_repas %}
+                    <p class="valeur">{{ dernier_repas.aliment }}</p>
+                    <p>{{ dernier_repas.quantite or "Quantite non precisee" }}</p>
+                    <p class="texte-secondaire">{{ dernier_repas.date_repas }} {{ dernier_repas.heure_repas or "" }}</p>
+                {% else %}
+                    <p class="texte-secondaire">Aucun repas note.</p>
+                {% endif %}
+            </article>
+        </section>
+
+        <section class="carte section-dashboard">
+            <div class="titre-ligne">
+                <h3>Alertes du jour consulte</h3>
+                <span class="badge">{{ alertes_actuelles|length }}</span>
+            </div>
+            {% if alertes_actuelles %}
+                <div class="liste-alertes">
+                    {% for alerte in alertes_actuelles %}
+                        <article class="alerte alerte-{{ alerte.niveau }}">
+                            <strong>{{ alerte.niveau|capitalize }}{% if alerte.nombre and alerte.nombre > 1 %} x{{ alerte.nombre }}{% endif %}</strong>
+                            <span>{{ alerte.message }}</span>
+                            <small>{{ alerte.source }} - {{ alerte.date }}</small>
+                        </article>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="texte-secondaire">Aucune alerte active.</p>
+            {% endif %}
+        </section>
+
+        <section class="carte section-dashboard">
+            <div class="titre-ligne">
+                <h3>Alertes a venir</h3>
+                <span class="badge">{{ alertes_a_venir|length }}</span>
+            </div>
+            {% if alertes_a_venir %}
+                <div class="liste-alertes">
+                    {% for alerte in alertes_a_venir %}
+                        <article class="alerte alerte-{{ alerte.niveau }}">
+                            <strong>{{ alerte.niveau|capitalize }}{% if alerte.nombre and alerte.nombre > 1 %} x{{ alerte.nombre }}{% endif %}</strong>
+                            <span>{{ alerte.message }}</span>
+                            <small>{{ alerte.source }} - prevue le {{ alerte.date }}</small>
+                        </article>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="texte-secondaire">Aucune alerte preventive dans le preavis configure.</p>
+            {% endif %}
+        </section>
+
+        <section class="grille-deux">
+            <article class="carte section-dashboard">
+                <h3>Observations recentes</h3>
+                {% if dernieres_observations %}
+                    <div class="liste-observations">
+                        {% for observation in dernieres_observations %}
+                            <article class="observation observation-{{ observation.niveau }}">
+                                <strong>{{ observation.categorie }}</strong>
+                                <p>{{ observation.description }}</p>
+                                <p class="texte-secondaire">{{ observation.date_observation }} {{ observation.heure_observation or "" }} - {{ observation.niveau }}</p>
+                            </article>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="texte-secondaire">Aucune observation recente.</p>
+                {% endif %}
+            </article>
+
+            <article class="carte section-dashboard">
+                <h3>A surveiller</h3>
+                {% if observations_a_surveiller %}
+                    <div class="liste-observations">
+                        {% for observation in observations_a_surveiller %}
+                            <article class="observation observation-{{ observation.niveau }}">
+                                <strong>{{ observation.categorie }}</strong>
+                                <p>{{ observation.description }}</p>
+                                <p class="texte-secondaire">{{ observation.date_observation }} {{ observation.heure_observation or "" }} - {{ observation.niveau }}</p>
+                            </article>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="texte-secondaire">Rien de particulier a surveiller.</p>
+                {% endif %}
+            </article>
+        </section>
+
+        <section class="carte section-dashboard">
+            <h3>Historique du jour</h3>
+            {% if historique_jour %}
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Heure</th>
+                            <th>Type</th>
+                            <th>Details</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in historique_jour %}
+                            <tr>
+                                <td>{{ item.heure }}</td>
+                                <td>{{ item.type }}</td>
+                                <td>{{ item.details }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <p class="texte-secondaire">Aucune action horodatee pour ce jour.</p>
+            {% endif %}
+        </section>
+
+        <section class="grille-deux">
+            <article class="carte section-dashboard">
+                <h3>Temperature</h3>
+                <canvas class="graphique" data-chart='{{ graphiques.temperature|tojson }}' data-color="#d96b4c" aria-label="Graphique temperature"></canvas>
+            </article>
+            <article class="carte section-dashboard">
+                <h3>Humidite</h3>
+                <canvas class="graphique" data-chart='{{ graphiques.humidite|tojson }}' data-color="#4a90a4" aria-label="Graphique humidite"></canvas>
+            </article>
+            <article class="carte section-dashboard">
+                <h3>Repas</h3>
+                <canvas class="graphique" data-chart='{{ graphiques.repas|tojson }}' data-color="#4f7f52" aria-label="Graphique repas"></canvas>
+            </article>
+            <article class="carte section-dashboard">
+                <h3>Poids{% if graphiques.poids_unite %} ({{ graphiques.poids_unite }}){% endif %}</h3>
+                <canvas class="graphique" data-chart='{{ graphiques.poids|tojson }}' data-color="#8a6f3d" aria-label="Graphique poids"></canvas>
+            </article>
+            <article class="carte section-dashboard">
+                <h3>Taille{% if graphiques.taille_unite %} ({{ graphiques.taille_unite }}){% endif %}</h3>
+                <canvas class="graphique" data-chart='{{ graphiques.taille|tojson }}' data-color="#5f9f5f" aria-label="Graphique taille"></canvas>
+            </article>
+            <article class="carte section-dashboard">
+                <h3>Actions insectes</h3>
+                <canvas class="graphique" data-chart='{{ graphiques.insectes|tojson }}' data-color="#d98c45" aria-label="Graphique insectes"></canvas>
+            </article>
+            <article class="carte section-dashboard">
+                <h3>Nombre d'insectes</h3>
+                <canvas class="graphique" data-chart='{{ graphiques.insectes_comptages|tojson }}' data-color="#4a90a4" aria-label="Graphique nombre d'insectes"></canvas>
+            </article>
+        </section>
+
+        <section class="grille-deux">
+            <article class="carte section-dashboard">
+                <h3>Statut des insectes</h3>
+                {% if derniers_insectes %}
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Type</th>
+                                <th>Boite</th>
+                                <th>Individus</th>
+                                <th>Derniere action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for insecte in derniers_insectes %}
+                                <tr>
+                                    <td>{{ insecte.type_insecte }}</td>
+                                    <td>{{ insecte.boite }}</td>
+                                    <td>{{ insecte.nombre_individus }}</td>
+                                    <td>{{ insecte.derniere_action or "-" }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                {% else %}
+                    <p class="texte-secondaire">Aucune action insecte notee.</p>
+                {% endif %}
+            </article>
+
+            <article class="carte section-dashboard">
+                <h3>Materiel utilise le jour choisi</h3>
+                {% if materiels_jour %}
+                    <ul class="liste-simple">
+                        {% for materiel in materiels_jour %}
+                            <li>
+                                <strong>{{ materiel.nom }}</strong>
+                                <span>{{ materiel.type }}</span>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p class="texte-secondaire">Aucun materiel actif pour ce jour.</p>
+                {% endif %}
+            </article>
+        </section>
+
+        <section class="carte section-dashboard">
+            <h3>Plantes a surveiller</h3>
+            {% if plantes_a_surveiller %}
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Nom</th>
+                            <th>Espece</th>
+                            <th>Etat</th>
+                            <th>Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for plante in plantes_a_surveiller %}
+                            <tr>
+                                <td>{{ plante.nom }}</td>
+                                <td>{{ plante.espece or "-" }}</td>
+                                <td>{{ plante.etat }}</td>
+                                <td>{{ plante.notes or "-" }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <p class="texte-secondaire">Aucune plante en mauvais etat.</p>
+            {% endif %}
+        </section>
+    </main>
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
+
+
+

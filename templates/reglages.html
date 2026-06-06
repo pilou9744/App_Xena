@@ -1,0 +1,285 @@
+﻿<!doctype html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ titre }} - GeckoCare Xena</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <header class="entete">
+        <h1>GeckoCare Xena</h1>
+        <nav class="navigation" aria-label="Navigation principale">
+            <a href="{{ url_for('accueil') }}">Accueil</a>
+            <a href="{{ url_for('tableau_de_bord') }}">Tableau de bord</a>
+            <a href="{{ url_for('releves') }}">Releves</a>
+            <a href="{{ url_for('repas') }}">Repas</a>
+            <a href="{{ url_for('observations') }}">Observations</a>
+            <a href="{{ url_for('insectes') }}">Insectes</a>
+            <a href="{{ url_for('boites_insectes') }}">Boites</a>
+            <a href="{{ url_for('materiel') }}">Materiel</a>
+            <a href="{{ url_for('plantes') }}">Plantes</a>
+            <a href="{{ url_for('animaux') }}">Animaux</a>
+            <a href="{{ url_for('reglages') }}">Reglages</a>
+        </nav>
+    </header>
+
+    <main class="contenu">
+        <section class="intro">
+            <h2>Reglages</h2>
+            <p class="texte-secondaire">Parametres d'alertes, seuils, delais et options preventives.</p>
+            <p class="texte-secondaire">Une alerte globale s'applique a tous les animaux. Une alerte rattachee a un animal avec la meme cle remplace la globale pour cet animal. Les alertes insectes restent toujours communes.</p>
+        </section>
+
+        <section class="carte section-dashboard">
+            <h3>Options generales</h3>
+            <p class="texte-secondaire">Base utilisee : {{ chemin_base }}</p>
+            <p class="texte-secondaire">Sauvegardes automatiques : {{ chemin_sauvegardes }}</p>
+            <form class="formulaire formulaire-compact" method="post" action="{{ url_for('modifier_options_alertes') }}">
+                <label class="case">
+                    <input name="alertes_info_preventives" type="checkbox" {% if reglages.alertes_info_preventives == "1" %}checked{% endif %}>
+                    Autoriser les alertes info en preventif
+                </label>
+                <div class="actions-formulaire">
+                    <button class="bouton-secondaire" type="submit">Enregistrer</button>
+                </div>
+            </form>
+        </section>
+
+        <section class="carte section-dashboard">
+            <div class="titre-ligne">
+                <div>
+                    <h3>Discord</h3>
+                    <p class="texte-secondaire">Envoi des alertes vers un salon Discord via webhook ou bot.</p>
+                </div>
+            </div>
+            {% if discord_message %}
+                <p class="alerte alerte-info">{{ discord_message }}</p>
+            {% endif %}
+            <form class="formulaire" method="post" action="{{ url_for('modifier_reglages_discord') }}">
+                <div class="champ">
+                    <label for="discord_mode">Methode d'envoi</label>
+                    <select id="discord_mode" name="discord_mode">
+                        <option value="webhook" {% if reglages.discord_mode == "webhook" %}selected{% endif %}>Webhook de salon</option>
+                        <option value="bot" {% if reglages.discord_mode == "bot" %}selected{% endif %}>Bot Discord</option>
+                    </select>
+                </div>
+                <div class="champ champ-large">
+                    <label for="discord_webhook_url">URL du webhook Discord</label>
+                    <input id="discord_webhook_url" name="discord_webhook_url" type="url" value="{{ reglages.discord_webhook_url }}" placeholder="https://discord.com/api/webhooks/...">
+                </div>
+                <div class="champ champ-large">
+                    <label for="discord_bot_token">Token du bot Discord</label>
+                    <input id="discord_bot_token" name="discord_bot_token" type="password" value="{{ reglages.discord_bot_token }}" autocomplete="off" placeholder="A utiliser seulement en methode Bot Discord">
+                </div>
+                <div class="champ">
+                    <label for="discord_channel_id">ID du salon Discord</label>
+                    <input id="discord_channel_id" name="discord_channel_id" type="text" inputmode="numeric" value="{{ reglages.discord_channel_id }}" placeholder="ex. 123456789012345678">
+                </div>
+                <label class="case">
+                    <input name="discord_alertes_actives" type="checkbox" {% if reglages.discord_alertes_actives == "1" %}checked{% endif %}>
+                    Envoyer les alertes actives
+                </label>
+                <label class="case">
+                    <input name="discord_alertes_preventives" type="checkbox" {% if reglages.discord_alertes_preventives == "1" %}checked{% endif %}>
+                    Envoyer les alertes a venir
+                </label>
+                <label class="case">
+                    <input name="discord_auto_actif" type="checkbox" {% if reglages.discord_auto_actif == "1" %}checked{% endif %}>
+                    Activer l'envoi automatique
+                </label>
+                <label class="case">
+                    <input name="discord_resume_quotidien" type="checkbox" {% if reglages.discord_resume_quotidien == "1" %}checked{% endif %}>
+                    Resume quotidien
+                </label>
+                <div class="champ">
+                    <label for="discord_resume_heure">Heure du resume</label>
+                    <input id="discord_resume_heure" name="discord_resume_heure" type="time" value="{{ reglages.discord_resume_heure }}" required>
+                </div>
+                <label class="case">
+                    <input name="discord_temps_reel" type="checkbox" {% if reglages.discord_temps_reel == "1" %}checked{% endif %}>
+                    Alerter quand une nouvelle alerte apparait
+                </label>
+                <fieldset class="champ champ-large">
+                    <legend>Niveaux envoyes</legend>
+                    <label class="case"><input name="discord_niveau_info" type="checkbox" {% if "info" in reglages.discord_niveaux %}checked{% endif %}> info</label>
+                    <label class="case"><input name="discord_niveau_attention" type="checkbox" {% if "attention" in reglages.discord_niveaux %}checked{% endif %}> attention</label>
+                    <label class="case"><input name="discord_niveau_danger" type="checkbox" {% if "danger" in reglages.discord_niveaux %}checked{% endif %}> danger</label>
+                    <label class="case"><input name="discord_niveau_critique" type="checkbox" {% if "critique" in reglages.discord_niveaux %}checked{% endif %}> critique</label>
+                </fieldset>
+                <div class="actions-formulaire">
+                    <button class="bouton-secondaire" type="submit">Enregistrer Discord</button>
+                    <button
+                        class="bouton-secondaire"
+                        type="submit"
+                        formaction="{{ url_for('envoyer_alertes_discord') }}"
+                        formmethod="post"
+                    >
+                        Envoyer maintenant
+                    </button>
+                </div>
+            </form>
+        </section>
+
+        <section class="carte section-dashboard">
+            <h3>Ajouter un type d'alerte</h3>
+            <form class="formulaire" method="post" action="{{ url_for('ajouter_alerte_config') }}">
+                <div class="champ"><label for="alerte_cle">Cle</label><input id="alerte_cle" name="cle" type="text" placeholder="ex. humidite_nuit_min" required></div>
+                <div class="champ"><label for="alerte_libelle">Libelle</label><input id="alerte_libelle" name="libelle" type="text" required></div>
+                <div class="champ">
+                    <label for="alerte_source">Source</label>
+                    <select id="alerte_source" name="source" required>
+                        {% for valeur, libelle in sources_alertes %}
+                            <option value="{{ valeur }}" {% if valeur == "poids_animal" %}selected{% endif %}>{{ libelle }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="champ">
+                    <label for="alerte_animal">Animal</label>
+                    <select id="alerte_animal" name="animal_id">
+                        <option value="">Global (insectes uniquement)</option>
+                        {% for animal in animaux %}
+                            <option value="{{ animal.id }}">{{ animal.nom }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="champ">
+                    <label for="alerte_niveau">Niveau</label>
+                    <select id="alerte_niveau" name="niveau">
+                        <option value="info">info</option>
+                        <option value="attention" selected>attention</option>
+                        <option value="danger">danger</option>
+                        <option value="critique">critique</option>
+                    </select>
+                </div>
+                <div class="champ"><label for="alerte_min">Seuil min</label><input id="alerte_min" name="seuil_min" type="number" step="0.1"></div>
+                <div class="champ"><label for="alerte_max">Seuil max</label><input id="alerte_max" name="seuil_max" type="number" step="0.1"></div>
+                <div class="champ champ-groupe">
+                    <label>Delai</label>
+                    <div class="ligne-champs">
+                        <input id="alerte_delai" name="delai_valeur" type="number" step="0.1" aria-label="Valeur du delai">
+                        <select id="alerte_delai_unite" name="delai_unite" aria-label="Unite du delai">
+                            <option value=""></option>
+                            <option value="heures">heures</option>
+                            <option value="jours">jours</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="champ"><label for="alerte_unite">Unite seuil</label><input id="alerte_unite" name="unite" type="text" placeholder="C, %, jours"></div>
+                <label class="case"><input name="actif" type="checkbox" checked> Active</label>
+                <label class="case"><input name="phantome" type="checkbox"> Preventive</label>
+                <div class="champ champ-groupe">
+                    <label>Preavis</label>
+                    <div class="ligne-champs">
+                        <input id="alerte_preavis" name="preavis_valeur" type="number" step="0.1" value="6" aria-label="Valeur du preavis">
+                        <select id="alerte_preavis_unite" name="preavis_unite" aria-label="Unite du preavis">
+                            <option value="heures">heures</option>
+                            <option value="jours">jours</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="champ champ-large"><label for="alerte_notes">Notes</label><textarea id="alerte_notes" name="notes" rows="2"></textarea></div>
+                <div class="actions-formulaire"><button type="submit">Ajouter l'alerte</button></div>
+            </form>
+        </section>
+
+        <section class="liste-reglages">
+            {% for groupe in alertes_config_groupes %}
+                <article class="carte carte-reglage section-dashboard">
+                    <div class="titre-ligne">
+                        <div>
+                            <h3>{{ groupe.cle }}</h3>
+                            <p class="texte-secondaire">{{ groupe.source }}</p>
+                        </div>
+                        <span class="badge">{{ groupe.configs|length }}</span>
+                    </div>
+
+                    {% for config in groupe.configs %}
+                        <section class="variante-reglage">
+                            <form class="formulaire" method="post" action="{{ url_for('modifier_alerte_config', config_id=config.id) }}">
+                                <input name="cle" type="hidden" value="{{ config.cle }}">
+                                <div class="titre-ligne titre-variante">
+                                    <strong>{{ config.animal_nom or "Global" }}</strong>
+                                    <span class="pastille alerte-{{ config.niveau }}">{{ config.niveau }}</span>
+                                </div>
+                                <div class="champ"><label>Libelle</label><input name="libelle" type="text" value="{{ config.libelle }}" required></div>
+                                <div class="champ">
+                                    <label>Source</label>
+                                    <select name="source" required>
+                                        {% for valeur, libelle in sources_alertes %}
+                                            <option value="{{ valeur }}" {% if config.source == valeur %}selected{% endif %}>{{ libelle }}</option>
+                                        {% endfor %}
+                                        {% if config.source not in sources_alertes_valeurs %}
+                                            <option value="{{ config.source }}" selected>{{ config.source }}</option>
+                                        {% endif %}
+                                    </select>
+                                </div>
+                                <div class="champ">
+                                    <label>Animal</label>
+                                    <select name="animal_id">
+                                        <option value="">Global (insectes uniquement)</option>
+                                        {% for animal in animaux %}
+                                            <option value="{{ animal.id }}" {% if config.animal_id == animal.id %}selected{% endif %}>{{ animal.nom }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="champ">
+                                    <label>Niveau</label>
+                                    <select name="niveau">
+                                        {% for niveau in ["info", "attention", "danger", "critique"] %}
+                                            <option value="{{ niveau }}" {% if config.niveau == niveau %}selected{% endif %}>{{ niveau }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="champ"><label>Seuil min</label><input name="seuil_min" type="number" step="0.1" value="{{ format_nombre(config.seuil_min) }}"></div>
+                                <div class="champ"><label>Seuil max</label><input name="seuil_max" type="number" step="0.1" value="{{ format_nombre(config.seuil_max) }}"></div>
+                                <div class="champ"><label>Unite seuil</label><input name="unite" type="text" value="{{ config.unite or '' }}"></div>
+                                <div class="champ champ-groupe">
+                                    <label>Delai</label>
+                                    <div class="ligne-champs">
+                                        <input name="delai_valeur" type="number" step="0.1" value="{{ format_nombre(config.delai_valeur) }}" aria-label="Valeur du delai">
+                                        <select name="delai_unite" aria-label="Unite du delai">
+                                            <option value=""></option>
+                                            <option value="heures" {% if config.delai_unite == "heures" %}selected{% endif %}>heures</option>
+                                            <option value="jours" {% if config.delai_unite == "jours" %}selected{% endif %}>jours</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <label class="case"><input name="actif" type="checkbox" {% if config.actif %}checked{% endif %}> Active</label>
+                                <label class="case"><input name="phantome" type="checkbox" {% if config.phantome %}checked{% endif %}> Preventive</label>
+                                <div class="champ champ-groupe">
+                                    <label>Preavis</label>
+                                    <div class="ligne-champs">
+                                        <input name="preavis_valeur" type="number" step="0.1" value="{{ format_nombre(config.preavis_valeur) }}" aria-label="Valeur du preavis">
+                                        <select name="preavis_unite" aria-label="Unite du preavis">
+                                            <option value="heures" {% if config.preavis_unite == "heures" %}selected{% endif %}>heures</option>
+                                            <option value="jours" {% if config.preavis_unite == "jours" %}selected{% endif %}>jours</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="champ champ-large"><label>Notes</label><textarea name="notes" rows="2">{{ config.notes or "" }}</textarea></div>
+                                <div class="actions-formulaire">
+                                    <button class="bouton-secondaire" type="submit">Modifier {{ config.animal_nom or "Global" }}</button>
+                                    <button
+                                        class="bouton-danger"
+                                        type="submit"
+                                        formaction="{{ url_for('supprimer_alerte_config', config_id=config.id) }}"
+                                        formmethod="post"
+                                        onclick="return confirm('Supprimer cette configuration d alerte ?');"
+                                    >
+                                        Supprimer {{ config.animal_nom or "Global" }}
+                                    </button>
+                                </div>
+                            </form>
+                        </section>
+                    {% endfor %}
+                </article>
+            {% endfor %}
+        </section>
+    </main>
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
+
+
+

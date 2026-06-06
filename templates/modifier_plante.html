@@ -1,0 +1,93 @@
+﻿<!doctype html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ titre }} - GeckoCare Xena</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <header class="entete">
+        <h1>GeckoCare Xena</h1>
+        <nav class="navigation" aria-label="Navigation principale">
+            <a href="{{ url_for('accueil') }}">Accueil</a>
+            <a href="{{ url_for('tableau_de_bord') }}">Tableau de bord</a>
+            <a href="{{ url_for('releves') }}">Releves</a>
+            <a href="{{ url_for('repas') }}">Repas</a>
+            <a href="{{ url_for('observations') }}">Observations</a>
+            <a href="{{ url_for('insectes') }}">Insectes</a>
+            <a href="{{ url_for('boites_insectes') }}">Boites</a>
+            <a href="{{ url_for('materiel') }}">Materiel</a>
+            <a href="{{ url_for('plantes') }}">Plantes</a>
+            <a href="{{ url_for('animaux') }}">Animaux</a>
+            <a href="{{ url_for('reglages') }}">Reglages</a>
+        </nav>
+    </header>
+
+    <main class="contenu">
+        <section class="intro">
+            <h2>Modifier une plante</h2>
+            <p class="texte-secondaire">Correction de l'etat, des notes ou des informations de plante.</p>
+        </section>
+
+        <section class="carte section-dashboard">
+            <form class="formulaire" method="post">
+                <div class="champ">
+                    <label for="animal_id">Animal</label>
+                    <select id="animal_id" name="animal_id">
+                        {% for animal in animaux %}
+                            <option value="{{ animal.id }}" {% if plante.animal_id == animal.id %}selected{% endif %}>{{ animal.nom }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="champ">
+                    <label for="nom">Nom</label>
+                    <input id="nom" name="nom" type="text" value="{{ plante.nom }}" required>
+                </div>
+
+                <div class="champ">
+                    <label for="espece">Espece</label>
+                    <input id="espece" name="espece" type="text" value="{{ plante.espece or '' }}">
+                </div>
+
+                <div class="champ">
+                    <label for="type_plante">Type</label>
+                    <select id="type_plante" name="type_plante" required>
+                        {% for type_plante in ["naturelle", "plastique"] %}
+                            <option value="{{ type_plante }}" {% if plante.type_plante == type_plante %}selected{% endif %}>{{ type_plante }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="champ">
+                    <label for="etat">Etat</label>
+                    <select id="etat" name="etat" required>
+                        {% for etat in ["excellent", "moyen", "mauvais", "decede"] %}
+                            <option value="{{ etat }}" {% if plante.etat == etat %}selected{% endif %}>{{ etat }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="champ">
+                    <label for="date_ajout">Date d'ajout</label>
+                    <input id="date_ajout" name="date_ajout" type="date" value="{{ plante.date_ajout or '' }}">
+                </div>
+
+                <div class="champ champ-large">
+                    <label for="notes">Notes</label>
+                    <textarea id="notes" name="notes" rows="3">{{ plante.notes or "" }}</textarea>
+                </div>
+
+                <div class="actions-formulaire">
+                    <button type="submit">Enregistrer</button>
+                    <a class="bouton-secondaire" href="{{ url_for('plantes') }}">Annuler</a>
+                </div>
+            </form>
+        </section>
+    </main>
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
+
+
+

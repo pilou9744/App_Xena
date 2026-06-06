@@ -1,0 +1,33 @@
+# Environnements Python
+venv/
+.venv/
+env/
+.env
+.env.*
+
+# Cache Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Base locale et sauvegardes
+data/*.db
+data/*.sqlite
+data/*.sqlite3
+data/sauvegardes/
+
+# Builds Windows / PyInstaller
+build/
+dist/
+*.spec.bak
+
+# Fichiers temporaires
+*.log
+*.tmp
+*.bak
+
+# Editeurs et systeme
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

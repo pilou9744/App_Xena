@@ -1,0 +1,122 @@
+﻿<!doctype html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ titre }} - GeckoCare Xena</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <header class="entete">
+        <h1>GeckoCare Xena</h1>
+        <nav class="navigation" aria-label="Navigation principale">
+            <a href="{{ url_for('accueil') }}">Accueil</a>
+            <a href="{{ url_for('tableau_de_bord') }}">Tableau de bord</a>
+            <a href="{{ url_for('releves') }}">Releves</a>
+            <a href="{{ url_for('repas') }}">Repas</a>
+            <a href="{{ url_for('observations') }}">Observations</a>
+            <a href="{{ url_for('insectes') }}">Insectes</a>
+            <a href="{{ url_for('boites_insectes') }}">Boites</a>
+            <a href="{{ url_for('materiel') }}">Materiel</a>
+            <a href="{{ url_for('plantes') }}">Plantes</a>
+            <a href="{{ url_for('animaux') }}">Animaux</a>
+            <a href="{{ url_for('reglages') }}">Reglages</a>
+        </nav>
+    </header>
+
+    <main class="contenu">
+        <section class="intro">
+            <h2>Observations</h2>
+            <p class="texte-secondaire">Mues, selles, comportement, sante et petits signaux a ne pas perdre dans le quotidien.</p>
+        </section>
+
+        <section class="carte section-dashboard">
+            <form class="formulaire formulaire-compact" method="get" action="{{ url_for('observations') }}">
+                <div class="champ">
+                    <label for="animal_filtre">Animal</label>
+                    <select id="animal_filtre" name="animal_id">
+                        {% for animal in animaux %}
+                            <option value="{{ animal.id }}" {% if animal_id == animal.id %}selected{% endif %}>{{ animal.nom }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="actions-formulaire"><button type="submit">Afficher</button></div>
+            </form>
+        </section>
+
+        <section class="carte section-dashboard">
+            <h3>Ajouter une observation</h3>
+            <form class="formulaire" method="post">
+                <input name="animal_id" type="hidden" value="{{ animal_id }}">
+                <div class="champ">
+                    <label for="date_observation">Date</label>
+                    <input id="date_observation" name="date_observation" type="date" value="{{ aujourd_hui }}" required>
+                </div>
+                <div class="champ">
+                    <label for="heure_observation">Heure</label>
+                    <input id="heure_observation" name="heure_observation" type="time" required>
+                </div>
+                <div class="champ">
+                    <label for="categorie">Categorie</label>
+                    <select id="categorie" name="categorie" required>
+                        {% for valeur, libelle in categories_observation %}
+                            <option value="{{ valeur }}">{{ libelle }}</option>
+                        {% endfor %}
+                    </select>
+                    <small class="texte-secondaire">Entretien / nettoyage sert aux notes comme gamelle, vitres, substrat, retrait de selles ou nettoyage ponctuel.</small>
+                </div>
+                <div class="champ">
+                    <label for="niveau">Niveau</label>
+                    <select id="niveau" name="niveau" required>
+                        {% for valeur, libelle in niveaux_observation %}
+                            <option value="{{ valeur }}">{{ libelle }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="champ champ-large">
+                    <label for="description">Observation</label>
+                    <textarea id="description" name="description" rows="4" placeholder="ex. Mue complete, comportement normal, selles vues, activite faible..." required></textarea>
+                </div>
+                <div class="champ champ-large">
+                    <label for="photo">Photo ou fichier lie</label>
+                    <input id="photo" name="photo" type="text" placeholder="chemin ou nom de photo, optionnel">
+                </div>
+                <div class="actions-formulaire">
+                    <button type="submit">Ajouter l'observation</button>
+                </div>
+            </form>
+        </section>
+
+        <section class="carte section-dashboard">
+            <h3>Historique des observations</h3>
+            {% if observations %}
+                <div class="liste-observations">
+                    {% for observation in observations %}
+                        <article class="observation observation-{{ observation.niveau }}">
+                            <div class="titre-ligne">
+                                <div>
+                                    <strong>{{ observation.categorie }}</strong>
+                                    <p class="texte-secondaire">{{ observation.date_observation }} {{ observation.heure_observation or "" }}</p>
+                                </div>
+                                <span class="pastille niveau-observation-{{ observation.niveau }}">{{ observation.niveau }}</span>
+                            </div>
+                            <p>{{ observation.description }}</p>
+                            {% if observation.photo %}
+                                <p class="texte-secondaire">Photo/fichier : {{ observation.photo }}</p>
+                            {% endif %}
+                            <form method="post" action="{{ url_for('supprimer_observation', observation_id=observation.id) }}" onsubmit="return confirm('Supprimer cette observation ?');">
+                                <button class="bouton-danger" type="submit">Supprimer</button>
+                            </form>
+                        </article>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="texte-secondaire">Aucune observation pour le moment.</p>
+            {% endif %}
+        </section>
+    </main>
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
+
+

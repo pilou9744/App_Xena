@@ -1,0 +1,106 @@
+﻿<!doctype html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ titre }} - GeckoCare Xena</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <header class="entete">
+        <h1>GeckoCare Xena</h1>
+        <nav class="navigation" aria-label="Navigation principale">
+            <a href="{{ url_for('accueil') }}">Accueil</a>
+            <a href="{{ url_for('tableau_de_bord') }}">Tableau de bord</a>
+            <a href="{{ url_for('releves') }}">Releves</a>
+            <a href="{{ url_for('repas') }}">Repas</a>
+            <a href="{{ url_for('observations') }}">Observations</a>
+            <a href="{{ url_for('insectes') }}">Insectes</a>
+            <a href="{{ url_for('boites_insectes') }}">Boites</a>
+            <a href="{{ url_for('materiel') }}">Materiel</a>
+            <a href="{{ url_for('plantes') }}">Plantes</a>
+            <a href="{{ url_for('animaux') }}">Animaux</a>
+            <a href="{{ url_for('reglages') }}">Reglages</a>
+        </nav>
+    </header>
+
+    <main class="contenu">
+        <section class="intro">
+            <h2>Modifier un repas</h2>
+            <p class="texte-secondaire">Correction d'un repas existant.</p>
+        </section>
+
+        <section class="carte section-dashboard">
+            <form class="formulaire" method="post">
+                <input name="aliment" type="hidden" value="{{ repas.aliment }}">
+                <input name="categorie" type="hidden" value="{{ repas.categorie }}">
+                <div class="champ">
+                    <label for="animal_id">Animal</label>
+                    <select id="animal_id" name="animal_id">
+                        {% for animal in animaux %}
+                            <option value="{{ animal.id }}" {% if repas.animal_id == animal.id %}selected{% endif %}>{{ animal.nom }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="champ">
+                    <label for="date_repas">Date</label>
+                    <input id="date_repas" name="date_repas" type="date" value="{{ repas.date_repas }}" required>
+                </div>
+
+                <div class="champ">
+                    <label for="heure_repas">Heure</label>
+                    <input id="heure_repas" name="heure_repas" type="time" value="{{ repas.heure_repas or '' }}" required>
+                </div>
+
+                <div class="champ">
+                    <label for="aliment">Aliment</label>
+                    <select id="aliment" name="aliment_id" required>
+                        {% set aliment_trouve = false %}
+                        {% for aliment in aliments %}
+                            {% if repas.aliment == aliment.nom %}
+                                {% set aliment_trouve = true %}
+                            {% endif %}
+                            <option value="{{ aliment.id }}" {% if repas.aliment == aliment.nom %}selected{% endif %}>
+                                {{ aliment.nom }} - {{ aliment.categorie }}
+                            </option>
+                        {% endfor %}
+                        {% if repas.aliment not in aliments|map(attribute='nom')|list %}
+                            <option value="" selected>{{ repas.aliment }} - {{ repas.categorie }}</option>
+                        {% endif %}
+                    </select>
+                </div>
+
+                <div class="champ">
+                    <label for="quantite">Quantite</label>
+                    <input id="quantite" name="quantite" type="text" value="{{ repas.quantite or '' }}">
+                </div>
+
+                <label class="case">
+                    <input name="calcium_sans_d3" type="checkbox" {% if repas.calcium_sans_d3 %}checked{% endif %}>
+                    Calcium sans D3
+                </label>
+
+                <label class="case">
+                    <input name="vitamine_d3" type="checkbox" {% if repas.vitamine_d3 %}checked{% endif %}>
+                    Vitamine D3
+                </label>
+
+                <div class="champ champ-large">
+                    <label for="notes">Notes</label>
+                    <textarea id="notes" name="notes" rows="3">{{ repas.notes or "" }}</textarea>
+                </div>
+
+                <div class="actions-formulaire">
+                    <button type="submit">Enregistrer</button>
+                    <a class="bouton-secondaire" href="{{ url_for('repas') }}">Annuler</a>
+                </div>
+            </form>
+        </section>
+    </main>
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
+
+
+

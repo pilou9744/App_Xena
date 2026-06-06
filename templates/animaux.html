@@ -1,0 +1,99 @@
+﻿<!doctype html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ titre }} - GeckoCare Xena</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <header class="entete">
+        <h1>GeckoCare Xena</h1>
+        <nav class="navigation" aria-label="Navigation principale">
+            <a href="{{ url_for('accueil') }}">Accueil</a>
+            <a href="{{ url_for('tableau_de_bord') }}">Tableau de bord</a>
+            <a href="{{ url_for('releves') }}">Releves</a>
+            <a href="{{ url_for('repas') }}">Repas</a>
+            <a href="{{ url_for('observations') }}">Observations</a>
+            <a href="{{ url_for('insectes') }}">Insectes</a>
+            <a href="{{ url_for('boites_insectes') }}">Boites</a>
+            <a href="{{ url_for('materiel') }}">Materiel</a>
+            <a href="{{ url_for('plantes') }}">Plantes</a>
+            <a href="{{ url_for('animaux') }}">Animaux</a>
+            <a href="{{ url_for('reglages') }}">Reglages</a>
+        </nav>
+    </header>
+
+    <main class="contenu">
+        <section class="intro">
+            <h2>Animaux</h2>
+            <p class="texte-secondaire">Informations personnelles et rattachement du materiel et des plantes.</p>
+        </section>
+
+        <section class="carte section-dashboard">
+            <h3>Ajouter un animal</h3>
+            <form class="formulaire" method="post">
+                <div class="champ"><label for="nom">Nom</label><input id="nom" name="nom" type="text" required></div>
+                <div class="champ"><label for="nom_vernaculaire">Nom vernaculaire</label><input id="nom_vernaculaire" name="nom_vernaculaire" type="text"></div>
+                <div class="champ"><label for="nom_scientifique">Nom scientifique</label><input id="nom_scientifique" name="nom_scientifique" type="text"></div>
+                <div class="champ"><label for="espece">Espece</label><input id="espece" name="espece" type="text"></div>
+                <div class="champ"><label for="sexe">Sexe</label><input id="sexe" name="sexe" type="text"></div>
+                <div class="champ"><label for="date_naissance_estimee">Naissance estimee</label><input id="date_naissance_estimee" name="date_naissance_estimee" type="date"></div>
+                <div class="champ champ-groupe">
+                    <label>Taille</label>
+                    <div class="ligne-champs">
+                        <input id="taille_valeur" name="taille_valeur" type="number" step="0.01" min="0" aria-label="Valeur de la taille">
+                        <select id="taille_unite" name="taille_unite" aria-label="Unite de la taille">
+                            <option value="cm">cm</option>
+                            <option value="mm">mm</option>
+                            <option value="m">m</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="champ champ-groupe">
+                    <label>Poids</label>
+                    <div class="ligne-champs">
+                        <input id="poids" name="poids" type="number" step="0.01" aria-label="Valeur du poids">
+                        <select id="poids_unite" name="poids_unite" aria-label="Unite du poids">
+                            <option value="g">g</option>
+                            <option value="kg">kg</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="champ champ-large"><label for="notes">Notes</label><textarea id="notes" name="notes" rows="3"></textarea></div>
+                <div class="actions-formulaire"><button type="submit">Ajouter l'animal</button></div>
+            </form>
+        </section>
+
+        <section class="grille-deux">
+            {% for animal in animaux %}
+                <article class="carte section-dashboard">
+                    <h3>{{ animal.nom }}</h3>
+                    <dl class="infos-animal infos-animal-secondaires">
+                        <div><dt>Nom courant</dt><dd>{{ animal.nom_vernaculaire or "-" }}</dd></div>
+                        <div><dt>Scientifique</dt><dd>{{ animal.nom_scientifique or animal.espece or "-" }}</dd></div>
+                        <div><dt>Sexe</dt><dd>{{ animal.sexe or "-" }}</dd></div>
+                        <div><dt>Naissance</dt><dd>{{ animal.date_naissance_estimee or "-" }}</dd></div>
+                        <div><dt>Taille</dt><dd>{{ animal.taille or "-" }}</dd></div>
+                        <div><dt>Poids</dt><dd>{% if animal.poids %}{{ animal.poids }} {{ animal.poids_unite or "g" }}{% else %}-{% endif %}</dd></div>
+                    </dl>
+                    <div class="actions-formulaire">
+                        <a class="bouton-secondaire" href="{{ url_for('modifier_animal', animal_id=animal.id) }}">Modifier</a>
+                        <a class="bouton-secondaire" href="{{ url_for('materiel', animal_id=animal.id) }}">Materiel</a>
+                        <a class="bouton-secondaire" href="{{ url_for('plantes', animal_id=animal.id) }}">Plantes</a>
+                        {% if animaux|length > 1 %}
+                            <form method="post" action="{{ url_for('supprimer_animal', animal_id=animal.id) }}" onsubmit="return confirm('Supprimer cet animal et toutes ses donnees rattachees ? Les insectes communs ne seront pas supprimes.');">
+                                <button class="bouton-danger" type="submit">Supprimer</button>
+                            </form>
+                        {% endif %}
+                    </div>
+                </article>
+            {% endfor %}
+        </section>
+    </main>
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
+
+
+
