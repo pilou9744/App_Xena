@@ -21,7 +21,7 @@ def dossier_donnees():
 
     # En mode executable, la base doit rester a cote de l'application et non
     # dans le dossier temporaire PyInstaller. Si l'exe est lance depuis dist,
-    # on privilegie donc le dossier data du projet parent.
+    # on privilegie donc le dossier data du projet parent
     exe_dir = Path(sys.executable).resolve().parent
     candidats = [
         exe_dir.parent / "data" if exe_dir.name.lower() == "dist" else None,
