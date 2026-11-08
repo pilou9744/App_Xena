@@ -99,10 +99,89 @@ def appliquer_migrations(conn):
         "taille_unite": "TEXT DEFAULT 'cm'",
         "poids": "TEXT",
         "poids_unite": "TEXT DEFAULT 'g'",
+        # Modification 2026-07-26 : profils adaptes aux besoins de chaque espece.
+        "profil": "TEXT NOT NULL DEFAULT 'terrarium'",
     }
     for colonne, type_sql in colonnes_gecko_attendues.items():
         if colonne not in colonnes_gecko:
             conn.execute(f"ALTER TABLE gecko ADD COLUMN {colonne} {type_sql}")
+    conn.execute("UPDATE gecko SET profil = 'terrarium' WHERE profil IS NULL OR profil = ''")
+    # Les profils deja presents sont proposes automatiquement sans ecraser un
+    # choix explicite : Nopal et les animaux identifies comme chats gagnent le
+    # tableau de bord simplifie.
+    conn.execute(
+        """
+        UPDATE gecko SET profil = 'chat'
+        WHERE profil = 'terrarium'
+        AND (LOWER(nom) = 'nopal' OR LOWER(COALESCE(espece, '')) LIKE '%chat%' OR LOWER(COALESCE(nom_scientifique, '')) LIKE '%felis%')
+        """
+    )
+
+    # Fonctionnalites ajoutees le 2026-07-26 : associations multiples du materiel
+    # et journal de sante (vaccins, rendez-vous, traitements). Les donnees existantes
+    # sont conservees et rattachees automatiquement a leur animal actuel.
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS materiel_animaux (
+            materiel_id INTEGER NOT NULL,
+            animal_id INTEGER NOT NULL,
+            PRIMARY KEY (materiel_id, animal_id),
+            FOREIGN KEY (materiel_id) REFERENCES materiel(id),
+            FOREIGN KEY (animal_id) REFERENCES gecko(id)
+        )
+        """
+    )
+    conn.execute(
+        """
+        INSERT OR IGNORE INTO materiel_animaux (materiel_id, animal_id)
+        SELECT id, animal_id FROM materiel WHERE animal_id IS NOT NULL
+        """
+    )
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS soins_sante (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            animal_id INTEGER NOT NULL,
+            date_soin TEXT NOT NULL,
+            type_soin TEXT NOT NULL,
+            titre TEXT NOT NULL,
+            veterinaire TEXT,
+            prochaine_date TEXT,
+            notes TEXT,
+            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (animal_id) REFERENCES gecko(id)
+        )
+        """
+    )
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS tendances (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            animal_id INTEGER NOT NULL,
+            date_reference TEXT NOT NULL,
+            temperature_matin REAL,
+            temperature_soir REAL,
+            humidite_matin INTEGER,
+            humidite_soir INTEGER,
+            brumisation INTEGER NOT NULL DEFAULT 0 CHECK (brumisation IN (0, 1)),
+            eau_changee INTEGER NOT NULL DEFAULT 0 CHECK (eau_changee IN (0, 1)),
+            repas_total INTEGER NOT NULL DEFAULT 0,
+            insectes_total INTEGER NOT NULL DEFAULT 0,
+            vitamine_d3 INTEGER NOT NULL DEFAULT 0 CHECK (vitamine_d3 IN (0, 1)),
+            poids REAL,
+            poids_unite TEXT DEFAULT 'g',
+            taille REAL,
+            taille_unite TEXT DEFAULT 'cm',
+            notes TEXT,
+            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(animal_id, date_reference),
+            FOREIGN KEY (animal_id) REFERENCES gecko(id)
+        )
+        """
+    )
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_tendances_animal_date ON tendances (animal_id, date_reference)"
+    )
 
     conn.execute(
         """

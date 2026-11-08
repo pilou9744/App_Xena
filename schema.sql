@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS gecko (
     taille_unite TEXT DEFAULT 'cm',
     poids TEXT,
     poids_unite TEXT DEFAULT 'g',
+    profil TEXT NOT NULL DEFAULT 'terrarium' CHECK (profil IN ('terrarium', 'chat', 'standard')),
     notes TEXT
 );
 
@@ -114,6 +115,54 @@ CREATE TABLE IF NOT EXISTS materiel (
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (animal_id) REFERENCES gecko(id)
 );
+
+-- Fonctionnalites ajoutees le 2026-07-26 : un materiel peut etre partage.
+CREATE TABLE IF NOT EXISTS materiel_animaux (
+    materiel_id INTEGER NOT NULL,
+    animal_id INTEGER NOT NULL,
+    PRIMARY KEY (materiel_id, animal_id),
+    FOREIGN KEY (materiel_id) REFERENCES materiel(id),
+    FOREIGN KEY (animal_id) REFERENCES gecko(id)
+);
+
+-- Suivi sante destine notamment aux profils chats : vaccins et rendez-vous.
+CREATE TABLE IF NOT EXISTS soins_sante (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    animal_id INTEGER NOT NULL,
+    date_soin TEXT NOT NULL,
+    type_soin TEXT NOT NULL CHECK (type_soin IN ('vaccin', 'rendez_vous', 'traitement', 'autre')),
+    titre TEXT NOT NULL,
+    veterinaire TEXT,
+    prochaine_date TEXT,
+    notes TEXT,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (animal_id) REFERENCES gecko(id)
+);
+
+CREATE TABLE IF NOT EXISTS tendances (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    animal_id INTEGER NOT NULL,
+    date_reference TEXT NOT NULL,
+    temperature_matin REAL,
+    temperature_soir REAL,
+    humidite_matin INTEGER,
+    humidite_soir INTEGER,
+    brumisation INTEGER NOT NULL DEFAULT 0 CHECK (brumisation IN (0, 1)),
+    eau_changee INTEGER NOT NULL DEFAULT 0 CHECK (eau_changee IN (0, 1)),
+    repas_total INTEGER NOT NULL DEFAULT 0,
+    insectes_total INTEGER NOT NULL DEFAULT 0,
+    vitamine_d3 INTEGER NOT NULL DEFAULT 0 CHECK (vitamine_d3 IN (0, 1)),
+    poids REAL,
+    poids_unite TEXT DEFAULT 'g',
+    taille REAL,
+    taille_unite TEXT DEFAULT 'cm',
+    notes TEXT,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(animal_id, date_reference),
+    FOREIGN KEY (animal_id) REFERENCES gecko(id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_tendances_animal_date ON tendances (animal_id, date_reference);
 
 CREATE TABLE IF NOT EXISTS materiel_mesures (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

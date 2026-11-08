@@ -1,5 +1,38 @@
 const THEME_STORAGE_KEY = "geckocare-theme";
 
+// Fonctionnalite ajoutee le 2026-07-26 : le profil animal est choisi une fois
+// dans cette barre puis conserve par l'application sur toutes les pages.
+async function ajouterSelecteurAnimal() {
+    const navigation = document.querySelector(".navigation");
+    if (!navigation) return;
+    let donnees;
+    try {
+        const reponse = await fetch("/profil-actif/donnees");
+        donnees = await reponse.json();
+    } catch (erreur) {
+        return;
+    }
+    const animaux = donnees.animaux || [];
+    const actif = animaux.find((animal) => animal.id === donnees.animal_actif_id);
+    if (actif && actif.profil === "chat") {
+        ["Releves", "Insectes", "Boites", "Plantes"].forEach((libelle) => {
+            [...navigation.querySelectorAll("a")].filter((lien) => lien.textContent.trim() === libelle).forEach((lien) => lien.remove());
+        });
+        if (![...navigation.querySelectorAll("a")].some((lien) => lien.textContent.trim() === "Sante")) {
+            const lienSante = document.createElement("a");
+            lienSante.href = "/sante";
+            lienSante.textContent = "Sante";
+            navigation.append(lienSante);
+        }
+        document.querySelectorAll(".gecko-only").forEach((element) => element.remove());
+        const titresGecko = ["Dernier bilan de nuit", "Dernier bilan de journee", "Mesure recente", "Temperature", "Humidite", "Actions insectes", "Nombre d'insectes", "Statut des insectes"];
+        document.querySelectorAll(".carte, article").forEach((element) => {
+            const titre = element.querySelector("h3");
+            if (titre && titresGecko.includes(titre.textContent.trim())) element.remove();
+        });
+    }
+}
+
 function appliquerTheme(theme) {
     document.documentElement.dataset.theme = theme;
     localStorage.setItem(THEME_STORAGE_KEY, theme);
@@ -138,6 +171,7 @@ function initialiserGraphiques() {
 
 appliquerTheme(themeInitial());
 document.addEventListener("DOMContentLoaded", () => {
+    ajouterSelecteurAnimal();
     ajouterBoutonTheme();
     definirHeureCourante();
     initialiserGraphiques();

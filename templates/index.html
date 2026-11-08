@@ -6,76 +6,108 @@
     <title>{{ titre }}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
-<body>
-    <header class="entete">
-        <h1>GeckoCare Xena</h1>
-        <nav class="navigation" aria-label="Navigation principale">
-            <a href="{{ url_for('accueil') }}">Accueil</a>
-            <a href="{{ url_for('tableau_de_bord') }}">Tableau de bord</a>
-            <a href="{{ url_for('releves') }}">Releves</a>
-            <a href="{{ url_for('repas') }}">Repas</a>
-            <a href="{{ url_for('observations') }}">Observations</a>
-            <a href="{{ url_for('insectes') }}">Insectes</a>
-            <a href="{{ url_for('boites_insectes') }}">Boites</a>
-            <a href="{{ url_for('materiel') }}">Materiel</a>
-            <a href="{{ url_for('plantes') }}">Plantes</a>
-            <a href="{{ url_for('animaux') }}">Animaux</a>
-            <a href="{{ url_for('reglages') }}">Reglages</a>
-        </nav>
+<body class="app-shell">
+    <header class="topbar">
+        <div class="brand-block">
+            <div class="brand-mark">X</div>
+            <div>
+                <p class="eyebrow eyebrow-soft">GeckoCare</p>
+                <h1>GeckoCare Xena</h1>
+            </div>
+        </div>
+        <div class="topbar-actions">
+            {% include "_selecteur_animal.html" %}
+        </div>
     </header>
 
-    <main>
-        <section class="hero-accueil" aria-label="Accueil GeckoCare Xena">
-            <div class="hero-accueil-contenu">
-                <p class="eyebrow">Terrarium tropical local</p>
-                <h2>GeckoCare Xena</h2>
-                <p>
-                    Un suivi calme et lisible pour garder les temperatures, l'humidite,
-                    les repas, les insectes, les plantes et le materiel au meme endroit.
-                </p>
-                <div class="hero-actions">
-                    <a class="bouton-hero" href="{{ url_for('tableau_de_bord') }}">Voir le tableau de bord</a>
-                    <a class="bouton-hero secondaire" href="{{ url_for('releves') }}">Ajouter un releve</a>
+    <div class="layout">
+        <aside class="sidebar">
+            <nav class="sidebar-nav" aria-label="Navigation principale">
+                <div class="nav-group">
+                    <p class="nav-title">Vue d'ensemble</p>
+                    <a class="nav-link active" href="{{ url_for('accueil') }}">Accueil</a>
+                    <a class="nav-link" href="{{ url_for('tableau_de_bord') }}">Tableau de bord</a>
                 </div>
-            </div>
-        </section>
 
-        <section class="contenu accueil-sections">
-            <div class="intro">
-                <h2>Suivi quotidien</h2>
-                <p class="texte-secondaire">Les donnees importantes restent accessibles rapidement, sans interface chargee.</p>
-            </div>
+                <div class="nav-group">
+                    <p class="nav-title">Suivi</p>
+                    <a class="nav-link" href="{{ url_for('releves') }}">Relevés</a>
+                    <a class="nav-link" href="{{ url_for('repas') }}">Repas</a>
+                    <a class="nav-link" href="{{ url_for('observations') }}">Observations</a>
+                    <a class="nav-link" href="{{ url_for('sante') }}">Santé</a>
+                </div>
 
-            <div class="grille-accueil">
-                <a class="carte carte-lien" href="{{ url_for('releves') }}">
-                    <span>Climat</span>
-                    <strong>Temperatures et humidite</strong>
-                    <small>Matin, soir, eau et brumisation.</small>
-                </a>
+                <div class="nav-group">
+                    <p class="nav-title">Terrarium</p>
+                    <a class="nav-link" href="{{ url_for('insectes') }}">Insectes</a>
+                    <a class="nav-link" href="{{ url_for('boites_insectes') }}">Boîtes</a>
+                    <a class="nav-link" href="{{ url_for('materiel') }}">Matériel</a>
+                    <a class="nav-link" href="{{ url_for('plantes') }}">Plantes</a>
+                </div>
 
-                <a class="carte carte-lien" href="{{ url_for('repas') }}">
-                    <span>Nutrition</span>
-                    <strong>Repas et supplements</strong>
-                    <small>Calcium sans D3, vitamine D3 et insectes.</small>
-                </a>
+                <div class="nav-group">
+                    <p class="nav-title">Administration</p>
+                    <a class="nav-link" href="{{ url_for('animaux') }}">Animaux</a>
+                    <a class="nav-link" href="{{ url_for('reglages') }}">Réglages</a>
+                </div>
+            </nav>
+        </aside>
 
-                <a class="carte carte-lien" href="{{ url_for('insectes') }}">
-                    <span>Elevage</span>
-                    <strong>Boites d'insectes</strong>
-                    <small>Nourrissage, brumisation et individus.</small>
-                </a>
+        <main class="main-panel">
+            <section class="hero-accueil" aria-label="Accueil GeckoCare Xena">
+                <div class="hero-accueil-contenu">
+                    <p class="eyebrow">Terrarium tropical local</p>
+                    <h2>Suivi clair, simple et fiable.</h2>
+                    <p>
+                        Un espace pensé pour garder les températures, l'humidité, les repas,
+                        le matériel et les alertes au même endroit, sans perdre le fil.
+                    </p>
+                    <div class="hero-actions">
+                        <a class="bouton-hero" href="{{ url_for('tableau_de_bord') }}">Ouvrir le dashboard</a>
+                        <a class="bouton-hero secondaire" href="{{ url_for('releves') }}">Ajouter un relevé</a>
+                    </div>
+                </div>
+            </section>
 
-                <a class="carte carte-lien" href="{{ url_for('plantes') }}">
-                    <span>Terrarium</span>
-                    <strong>Plantes et materiel</strong>
-                    <small>Etat des plantes et equipement actif.</small>
-                </a>
-            </div>
-        </section>
-    </main>
+            <section class="page-section">
+                <div class="section-header">
+                    <div>
+                        <p class="eyebrow eyebrow-soft">Synthèse</p>
+                        <h3>Suivi quotidien</h3>
+                    </div>
+                </div>
+
+                <div class="overview-grid">
+                    <a class="carte carte-lien" href="{{ url_for('releves') }}">
+                        <span>Climat</span>
+                        <strong>Températures & humidité</strong>
+                        <small>Matin, soir, eau et brumisation.</small>
+                    </a>
+
+                    <a class="carte carte-lien" href="{{ url_for('repas') }}">
+                        <span>Nutrition</span>
+                        <strong>Repas & compléments</strong>
+                        <small>Calcium sans D3, vitamine D3 et insectes.</small>
+                    </a>
+
+                    <a class="carte carte-lien" href="{{ url_for('insectes') }}">
+                        <span>Élevage</span>
+                        <strong>Boîtes d'insectes</strong>
+                        <small>Nourrissage, brumisation et effectifs.</small>
+                    </a>
+
+                    <a class="carte carte-lien" href="{{ url_for('plantes') }}">
+                        <span>Terrarium</span>
+                        <strong>Plantes & matériel</strong>
+                        <small>État des plantes et équipement actif.</small>
+                    </a>
+                </div>
+            </section>
+        </main>
+    </div>
+
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>
 </body>
 </html>
-
 
 

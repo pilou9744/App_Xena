@@ -1,0 +1,12 @@
+{# Modification 2026-07-27 : selecteur unique, rendu par le serveur sous le menu. #}
+<section class="barre-animal" aria-label="Animal consulte">
+    <form method="post" action="{{ url_for('choisir_profil_actif') }}">
+        <input type="hidden" name="retour" value="{{ request.full_path if request.query_string else request.path }}">
+        <label for="profil-animal">Animal</label>
+        <select id="profil-animal" name="animal_id" onchange="this.form.submit()">
+            {% for animal in animaux_navigation %}
+                <option value="{{ animal.id }}" {% if animal.id == animal_actif_id %}selected{% endif %}>{{ animal.nom }}</option>
+            {% endfor %}
+        </select>
+    </form>
+</section>

@@ -7,7 +7,7 @@ from pathlib import Path
 from urllib import request as urlrequest
 from urllib.error import HTTPError, URLError
 
-from flask import Flask, abort, redirect, render_template, request, url_for
+from flask import Flask, abort, jsonify, redirect, render_template, request, session, url_for
 
 from database import BACKUP_DIR, DB_PATH, connexion, initialiser_base
 
@@ -18,15 +18,22 @@ app = Flask(
     template_folder=str(RESSOURCES_DIR / "templates"),
     static_folder=str(RESSOURCES_DIR / "static"),
 )
+# Modification 2026-07-26 : le profil consulte est memorise entre les pages.
+app.secret_key = "geckocare-profil-local-v1"
 SCHEDULER_DISCORD_DEMARRE = False
 
 
 @app.context_processor
 def filtres_templates():
+    with connexion() as conn:
+        animaux = lister_animaux(conn)
+    animal_id = animal_id_selectionne(animaux, entier_ou_none(session.get("animal_actif_id")))
     return {
         "libelle_statut_materiel": libelle_statut_materiel,
         "libelle_statut_contenant": libelle_statut_contenant,
         "format_nombre": format_nombre,
+        "animaux_navigation": animaux,
+        "animal_actif_id": animal_id,
     }
 
 
@@ -38,6 +45,26 @@ def preparer_application():
     demarrer_scheduler_discord()
 
 
+@app.route("/profil-actif", methods=["POST"])
+def choisir_profil_actif():
+    """Fonctionnalite 2026-07-26 : conserve l'animal choisi dans la session locale."""
+    animal_id = entier_ou_none(request.form.get("animal_id"))
+    with connexion() as conn:
+        existe = conn.execute("SELECT 1 FROM gecko WHERE id = ?", (animal_id,)).fetchone()
+    if existe:
+        session["animal_actif_id"] = animal_id
+    return redirect(request.form.get("retour") or url_for("tableau_de_bord"))
+
+
+@app.route("/profil-actif/donnees")
+def donnees_profil_actif():
+    """Source commune du selecteur injecte dans les en-tetes existants."""
+    with connexion() as conn:
+        animaux = [dict(animal) for animal in lister_animaux(conn)]
+    actif = animal_id_selectionne(animaux, animal_id_actif())
+    return jsonify({"animaux": animaux, "animal_actif_id": actif})
+
+
 @app.route("/")
 def accueil():
     return render_template("index.html", titre="GeckoCare Xena")
@@ -46,9 +73,24 @@ def accueil():
 @app.route("/dashboard")
 def tableau_de_bord():
     date_selectionnee = request.args.get("date") or date.today().isoformat()
-    animal_id = entier_ou_none(request.args.get("animal_id"))
+    animal_id = animal_id_actif(request.args.get("animal_id"))
     donnees = charger_tableau_de_bord(date_selectionnee, animal_id)
     return render_template("dashboard.html", titre="Tableau de bord", **donnees)
+
+
+def animal_id_actif(valeur=None):
+    """Priorite a l'URL, puis au profil choisi ; conserve la compatibilite des anciens liens."""
+    animal_id = entier_ou_none(valeur)
+    if animal_id is not None:
+        session["animal_actif_id"] = animal_id
+        return animal_id
+    return entier_ou_none(session.get("animal_actif_id"))
+
+
+def profil_terrarium(animal_id):
+    with connexion() as conn:
+        animal = charger_animal(conn, animal_id)
+    return not animal or animal.get("profil") == "terrarium"
 
 
 @app.route("/poids", methods=["POST"])
@@ -122,21 +164,30 @@ def supprimer_animal(animal_id):
             return redirect(url_for("animaux"))
 
         conn.execute("DELETE FROM alertes_config WHERE animal_id = ?", (animal_id,))
-        conn.execute(
+        # Modification 2026-07-26 : un materiel partage reste en place pour les
+        # autres animaux. Seul le materiel qui devient orphelin est supprime.
+        materiels_orphelins = [ligne["materiel_id"] for ligne in conn.execute(
             """
-            DELETE FROM materiel_journalier
-            WHERE materiel_id IN (
-                SELECT id FROM materiel WHERE animal_id = ?
+            SELECT ma.materiel_id FROM materiel_animaux ma
+            WHERE ma.animal_id = ? AND NOT EXISTS (
+                SELECT 1 FROM materiel_animaux autre
+                WHERE autre.materiel_id = ma.materiel_id AND autre.animal_id != ?
             )
-            """,
-            (animal_id,),
-        )
-        conn.execute("DELETE FROM materiel WHERE animal_id = ?", (animal_id,))
+            """, (animal_id, animal_id)
+        ).fetchall()]
+        if materiels_orphelins:
+            marqueurs = ",".join("?" for _ in materiels_orphelins)
+            conn.execute(f"DELETE FROM materiel_journalier WHERE materiel_id IN ({marqueurs})", materiels_orphelins)
+        conn.execute("DELETE FROM materiel_animaux WHERE animal_id = ?", (animal_id,))
+        if materiels_orphelins:
+            marqueurs = ",".join("?" for _ in materiels_orphelins)
+            conn.execute(f"DELETE FROM materiel WHERE id IN ({marqueurs})", materiels_orphelins)
         conn.execute("DELETE FROM plantes WHERE animal_id = ?", (animal_id,))
         conn.execute("DELETE FROM poids_mesures WHERE animal_id = ?", (animal_id,))
         conn.execute("DELETE FROM taille_mesures WHERE animal_id = ?", (animal_id,))
         conn.execute("DELETE FROM releves WHERE animal_id = ?", (animal_id,))
         conn.execute("DELETE FROM repas WHERE animal_id = ?", (animal_id,))
+        conn.execute("DELETE FROM soins_sante WHERE animal_id = ?", (animal_id,))
         conn.execute("DELETE FROM gecko WHERE id = ?", (animal_id,))
         conn.commit()
 
@@ -145,8 +196,14 @@ def supprimer_animal(animal_id):
 
 @app.route("/reglages", methods=["GET"])
 def reglages():
+    filtre_animal = entier_ou_none(request.args.get("animal_id"))
+    filtre_niveau = request.args.get("niveau", "").strip()
     with connexion() as conn:
         alertes_config = lister_alertes_config(conn)
+        if filtre_animal is not None:
+            alertes_config = [a for a in alertes_config if a["animal_id"] in (None, filtre_animal)]
+        if filtre_niveau:
+            alertes_config = [a for a in alertes_config if a["niveau"] == filtre_niveau]
         sources = sources_alertes()
         return render_template(
             "reglages.html",
@@ -160,6 +217,8 @@ def reglages():
             chemin_base=DB_PATH,
             chemin_sauvegardes=BACKUP_DIR,
             discord_message=request.args.get("discord_message"),
+            filtre_animal=filtre_animal,
+            filtre_niveau=filtre_niveau,
         )
 
 
@@ -248,7 +307,7 @@ def modifier_options_alertes():
 @app.route("/releves", methods=["GET", "POST"])
 def releves():
     erreur = None
-    animal_id = entier_ou_none(request.args.get("animal_id"))
+    animal_id = animal_id_actif(request.args.get("animal_id"))
 
     if request.method == "POST":
         try:
@@ -260,6 +319,8 @@ def releves():
     with connexion() as conn:
         animaux_liste = lister_animaux(conn)
         animal_id = animal_id_selectionne(animaux_liste, animal_id)
+        if not profil_terrarium(animal_id):
+            return redirect(url_for("tableau_de_bord"))
         derniers_releves = conn.execute(
             """
             SELECT * FROM releves
@@ -283,7 +344,7 @@ def releves():
 
 @app.route("/repas", methods=["GET", "POST"])
 def repas():
-    animal_id = entier_ou_none(request.args.get("animal_id"))
+    animal_id = animal_id_actif(request.args.get("animal_id"))
     if request.method == "POST":
         if request.form.get("formulaire") == "aliment":
             ajouter_aliment(request.form)
@@ -318,7 +379,7 @@ def repas():
 
 @app.route("/observations", methods=["GET", "POST"])
 def observations():
-    animal_id = entier_ou_none(request.args.get("animal_id"))
+    animal_id = animal_id_actif(request.args.get("animal_id"))
     if request.method == "POST":
         ajouter_observation(request.form)
         return redirect(url_for("observations", animal_id=request.form.get("animal_id")))
@@ -346,6 +407,39 @@ def observations():
         categories_observation=categories_observation(),
         niveaux_observation=niveaux_observation(),
     )
+
+
+@app.route("/sante", methods=["GET", "POST"])
+def sante():
+    """Fonctionnalite 2026-07-26 : carnet de sante des animaux domestiques."""
+    animal_id = animal_id_actif(request.args.get("animal_id"))
+    if request.method == "POST":
+        with connexion() as conn:
+            conn.execute(
+                """
+                INSERT INTO soins_sante (animal_id, date_soin, type_soin, titre, veterinaire, prochaine_date, notes)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    entier_ou_none(request.form.get("animal_id")),
+                    request.form.get("date_soin") or date.today().isoformat(),
+                    request.form.get("type_soin") or "autre",
+                    request.form.get("titre", "").strip(),
+                    request.form.get("veterinaire", "").strip(),
+                    request.form.get("prochaine_date", "").strip(),
+                    request.form.get("notes", "").strip(),
+                ),
+            )
+            conn.commit()
+        return redirect(url_for("sante"))
+    with connexion() as conn:
+        animaux_liste = lister_animaux(conn)
+        animal_id = animal_id_selectionne(animaux_liste, animal_id)
+        soins = conn.execute(
+            "SELECT * FROM soins_sante WHERE animal_id = ? ORDER BY date_soin DESC, created_at DESC",
+            (animal_id,),
+        ).fetchall()
+    return render_template("sante.html", titre="Sante", animal_id=animal_id, soins=soins, aujourd_hui=date.today().isoformat())
 
 
 @app.route("/insectes", methods=["GET", "POST"])
@@ -446,7 +540,7 @@ def supprimer_boite_insectes(boite_id):
 @app.route("/materiel", methods=["GET", "POST"])
 def materiel():
     date_selectionnee = request.args.get("date") or date.today().isoformat()
-    animal_id = entier_ou_none(request.args.get("animal_id"))
+    animal_id = animal_id_actif(request.args.get("animal_id"))
 
     if request.method == "POST":
         if request.form.get("formulaire") == "journal":
@@ -463,8 +557,9 @@ def materiel():
         types_materiel = lister_types_materiel(conn)
         materiels = conn.execute(
             """
-            SELECT * FROM materiel
-            WHERE animal_id = ?
+            SELECT DISTINCT m.* FROM materiel m
+            JOIN materiel_animaux ma ON ma.materiel_id = m.id
+            WHERE ma.animal_id = ?
             ORDER BY actif DESC, statut, type, nom
             """,
             (animal_id,),
@@ -495,6 +590,11 @@ def modifier_materiel(materiel_id):
     with connexion() as conn:
         types_materiel = lister_types_materiel(conn)
         animaux_liste = lister_animaux(conn)
+        animaux_associes = {
+            ligne["animal_id"] for ligne in conn.execute(
+                "SELECT animal_id FROM materiel_animaux WHERE materiel_id = ?", (materiel_id,)
+            ).fetchall()
+        }
     return render_template(
         "modifier_materiel.html",
         titre="Modifier un materiel",
@@ -502,6 +602,7 @@ def modifier_materiel(materiel_id):
         animaux=animaux_liste,
         types_materiel=types_materiel,
         statuts_materiel=statuts_materiel(),
+        animaux_associes=animaux_associes,
     )
 
 
@@ -1132,6 +1233,7 @@ def ajouter_materiel(formulaire):
                 notes,
             ),
         )
+        associer_materiel_animaux(conn, curseur.lastrowid, formulaire, animal_id)
         if est_consommable and quantite_restante is not None:
             conn.execute(
                 """
@@ -1199,7 +1301,20 @@ def mettre_a_jour_materiel(materiel_id, formulaire):
                 materiel_id,
             ),
         )
+        associer_materiel_animaux(conn, materiel_id, formulaire, animal_id)
         conn.commit()
+
+
+def associer_materiel_animaux(conn, materiel_id, formulaire, animal_id_principal):
+    """Modification 2026-07-26 : maintient les associations d'un materiel partage."""
+    ids = {int(valeur) for valeur in formulaire.getlist("animal_ids") if valeur.isdigit()}
+    if animal_id_principal is not None:
+        ids.add(animal_id_principal)
+    conn.execute("DELETE FROM materiel_animaux WHERE materiel_id = ?", (materiel_id,))
+    conn.executemany(
+        "INSERT OR IGNORE INTO materiel_animaux (materiel_id, animal_id) VALUES (?, ?)",
+        [(materiel_id, animal_id) for animal_id in ids],
+    )
 
 
 def enregistrer_mesure_materiel(materiel_id, formulaire):
@@ -1446,10 +1561,12 @@ def donnees_animal_depuis_formulaire(formulaire):
         "taille_unite",
         "poids",
         "poids_unite",
+        "profil",
         "notes",
     ]
     donnees = {champ: formulaire.get(champ, "").strip() for champ in champs}
     donnees["poids_unite"] = unite_poids_valide(donnees["poids_unite"])
+    donnees["profil"] = formulaire.get("profil") if formulaire.get("profil") in ("terrarium", "chat", "standard") else "standard"
     taille_valeur = nombre_ou_none(donnees["taille_valeur"])
     donnees["taille_valeur"] = taille_valeur
     donnees["taille_unite"] = unite_taille_valide(donnees["taille_unite"])
@@ -1921,8 +2038,9 @@ def charger_tableau_de_bord(date_selectionnee, animal_id=None):
         ).fetchall()
         materiels_actifs = conn.execute(
             """
-            SELECT * FROM materiel
-            WHERE animal_id = ?
+            SELECT DISTINCT m.* FROM materiel m
+            JOIN materiel_animaux ma ON ma.materiel_id = m.id
+            WHERE ma.animal_id = ?
             AND actif = 1
             AND statut != 'obsolete_casse'
             ORDER BY type, nom
@@ -1996,6 +2114,10 @@ def charger_tableau_de_bord(date_selectionnee, animal_id=None):
         resultats_alertes = calculer_alertes(conn, maintenant, reglages, date_selectionnee, animal_id)
         alertes_config = lister_alertes_config(conn)
 
+        resume_journalier = construire_resume_journalier(conn, animal_id, date_selectionnee)
+        if resume_journalier:
+            sauvegarder_tendance_journalier(conn, animal_id, date_selectionnee, resume_journalier)
+
     return {
         "date_selectionnee": date_selectionnee,
         "maintenant": maintenant.strftime("%Y-%m-%d %H:%M"),
@@ -2023,11 +2145,156 @@ def charger_tableau_de_bord(date_selectionnee, animal_id=None):
         "insectes_jour": insectes_jour,
         "historique_jour": historique_jour,
         "graphiques": graphiques,
+        "resume_journalier": resume_journalier,
         "alertes": resultats_alertes["alertes_actuelles"],
         "alertes_actuelles": resultats_alertes["alertes_actuelles"],
         "alertes_a_venir": resultats_alertes["alertes_a_venir"],
         "alertes_config": alertes_config,
     }
+
+
+def construire_resume_journalier(conn, animal_id, date_reference):
+    """Construit un resume compact et exploitable pour l'IA future ou un suivi rapide.
+    Les donnees sont normalisees pour garder une vue claire sans devoir recomposer
+    tous les tableaux a chaque fois.
+    """
+    if animal_id is None:
+        return None
+
+    date_recherche = date_reference or date.today().isoformat()
+    matin = conn.execute(
+        """
+        SELECT temperature, humidite, brumisation, eau_changee
+        FROM releves
+        WHERE animal_id = ? AND date_releve = ? AND moment = 'matin'
+        ORDER BY heure_releve DESC, created_at DESC
+        LIMIT 1
+        """,
+        (animal_id, date_recherche),
+    ).fetchone()
+    soir = conn.execute(
+        """
+        SELECT temperature, humidite, brumisation, eau_changee
+        FROM releves
+        WHERE animal_id = ? AND date_releve = ? AND moment = 'soir'
+        ORDER BY heure_releve DESC, created_at DESC
+        LIMIT 1
+        """,
+        (animal_id, date_recherche),
+    ).fetchone()
+    repas = conn.execute(
+        """
+        SELECT COUNT(*) AS total, SUM(CASE WHEN vitamine_d3 = 1 THEN 1 ELSE 0 END) AS vitamine_d3
+        FROM repas
+        WHERE animal_id = ? AND date_repas = ?
+        """,
+        (animal_id, date_recherche),
+    ).fetchone()
+    insectes = conn.execute(
+        """
+        SELECT COUNT(*) AS total
+        FROM insectes_actions
+        WHERE date_action = ?
+        """,
+        (date_recherche,),
+    ).fetchone()
+    poids = conn.execute(
+        """
+        SELECT poids, unite
+        FROM poids_mesures
+        WHERE animal_id = ? AND date_mesure = ?
+        ORDER BY created_at DESC
+        LIMIT 1
+        """,
+        (animal_id, date_recherche),
+    ).fetchone()
+    taille = conn.execute(
+        """
+        SELECT taille, unite
+        FROM taille_mesures
+        WHERE animal_id = ? AND date_mesure = ?
+        ORDER BY created_at DESC
+        LIMIT 1
+        """,
+        (animal_id, date_recherche),
+    ).fetchone()
+
+    resume = {
+        "animal_id": animal_id,
+        "date_reference": date_recherche,
+        "temperature_matin": matin["temperature"] if matin else None,
+        "temperature_soir": soir["temperature"] if soir else None,
+        "humidite_matin": matin["humidite"] if matin else None,
+        "humidite_soir": soir["humidite"] if soir else None,
+        "brumisation": 1 if (matin and matin["brumisation"]) or (soir and soir["brumisation"]) else 0,
+        "eau_changee": 1 if (matin and matin["eau_changee"]) or (soir and soir["eau_changee"]) else 0,
+        "repas_total": repas["total"] if repas else 0,
+        "insectes_total": insectes["total"] if insectes else 0,
+        "vitamine_d3": 1 if (repas and repas["vitamine_d3"] and repas["vitamine_d3"] > 0) else 0,
+        "poids": poids["poids"] if poids else None,
+        "poids_unite": poids["unite"] if poids else "g",
+        "taille": taille["taille"] if taille else None,
+        "taille_unite": taille["unite"] if taille else "cm",
+        "has_data": bool(matin or soir or repas or insectes or poids or taille),
+    }
+    return resume
+
+
+def sauvegarder_tendance_journalier(conn, animal_id, date_reference, resume=None):
+    """Persist une synthese journaliere pour faciliter les analyses futures."""
+    if animal_id is None:
+        return None
+    if resume is None:
+        resume = construire_resume_journalier(conn, animal_id, date_reference)
+    if not resume or not resume.get("has_data"):
+        return None
+
+    conn.execute(
+        """
+        INSERT INTO tendances (
+            animal_id, date_reference, temperature_matin, temperature_soir,
+            humidite_matin, humidite_soir, brumisation, eau_changee,
+            repas_total, insectes_total, vitamine_d3, poids, poids_unite,
+            taille, taille_unite, notes
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(animal_id, date_reference) DO UPDATE SET
+            temperature_matin = excluded.temperature_matin,
+            temperature_soir = excluded.temperature_soir,
+            humidite_matin = excluded.humidite_matin,
+            humidite_soir = excluded.humidite_soir,
+            brumisation = excluded.brumisation,
+            eau_changee = excluded.eau_changee,
+            repas_total = excluded.repas_total,
+            insectes_total = excluded.insectes_total,
+            vitamine_d3 = excluded.vitamine_d3,
+            poids = excluded.poids,
+            poids_unite = excluded.poids_unite,
+            taille = excluded.taille,
+            taille_unite = excluded.taille_unite,
+            notes = excluded.notes,
+            created_at = CURRENT_TIMESTAMP
+        """,
+        (
+            animal_id,
+            resume["date_reference"],
+            resume["temperature_matin"],
+            resume["temperature_soir"],
+            resume["humidite_matin"],
+            resume["humidite_soir"],
+            resume["brumisation"],
+            resume["eau_changee"],
+            resume["repas_total"],
+            resume["insectes_total"],
+            resume["vitamine_d3"],
+            resume["poids"],
+            resume["poids_unite"],
+            resume["taille"],
+            resume["taille_unite"],
+            None,
+        ),
+    )
+    return resume
 
 
 def calculer_alertes(conn, maintenant=None, reglages=None, date_selectionnee=None, animal_id=None):
@@ -3016,7 +3283,7 @@ def materiel_utilise_pour_date(conn, date_selectionnee, animal_id=None):
         SELECT m.* FROM materiel_journalier mj
         JOIN materiel m ON m.id = mj.materiel_id
         WHERE mj.date_utilisation = ?
-        AND (? IS NULL OR m.animal_id = ?)
+        AND (? IS NULL OR EXISTS (SELECT 1 FROM materiel_animaux ma WHERE ma.materiel_id = m.id AND ma.animal_id = ?))
         AND mj.utilise = 1
         ORDER BY m.type, m.nom
         """,
@@ -3028,7 +3295,7 @@ def materiel_utilise_pour_date(conn, date_selectionnee, animal_id=None):
     return conn.execute(
         """
         SELECT * FROM materiel
-        WHERE (? IS NULL OR animal_id = ?)
+        WHERE (? IS NULL OR EXISTS (SELECT 1 FROM materiel_animaux ma WHERE ma.materiel_id = materiel.id AND ma.animal_id = ?))
         AND actif = 1
         AND statut != 'obsolete_casse'
         AND (date_debut IS NULL OR date_debut = '' OR date_debut <= ?)
@@ -3047,7 +3314,8 @@ def enregistrer_materiel_journalier(formulaire):
     }
     with connexion() as conn:
         materiels = conn.execute(
-            "SELECT id, statut FROM materiel WHERE statut != 'obsolete_casse' AND animal_id = ?",
+            """SELECT DISTINCT m.id, m.statut FROM materiel m JOIN materiel_animaux ma ON ma.materiel_id = m.id
+               WHERE m.statut != 'obsolete_casse' AND ma.animal_id = ?""",
             (animal_id,),
         ).fetchall()
         for materiel in materiels:
